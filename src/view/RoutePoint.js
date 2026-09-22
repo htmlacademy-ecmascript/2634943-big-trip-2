@@ -1,3 +1,5 @@
+import {EVENT_ICONS} from '../const.js';
+
 export default class RoutePoint {
   constructor(options) {
     this.type = options.type;
@@ -37,21 +39,9 @@ export default class RoutePoint {
       duration = `${durationMinutes}M`;
     }
 
-    const iconMap = {
-      'taxi': 'img/icons/taxi.png',
-      'bus': 'img/icons/bus.png',
-      'train': 'img/icons/train.png',
-      'ship': 'img/icons/ship.png',
-      'drive': 'img/icons/drive.png',
-      'flight': 'img/icons/flight.png',
-      'check-in': 'img/icons/check-in.png',
-      'sightseeing': 'img/icons/sightseeing.png',
-      'restaurant': 'img/icons/restaurant.png',
-    };
-
-    const iconSrc = iconMap[this.type] || 'img/icons/flight.png';
+    const iconSrc = EVENT_ICONS[this.type] || EVENT_ICONS['flight'];
     const typeCapitalized = this.type.charAt(0).toUpperCase() + this.type.slice(1);
-    const title = `${typeCapitalized} ${this.destination.name}`;
+    const title = this.destination ? `${typeCapitalized} ${this.destination.name}` : `${typeCapitalized}`;
     const favoriteClass = this.isFavorite ? 'event__favorite-btn--active' : '';
 
     const offersList = this.offers.map((offer) => `

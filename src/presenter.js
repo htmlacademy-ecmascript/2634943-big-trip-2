@@ -1,37 +1,25 @@
-﻿import { render, RenderPosition } from './render.js';
+﻿import {render, RenderPosition} from './render.js';
 import Filter from './view/Filter.js';
 import Sort from './view/Sort.js';
-import CreateForm from './view/CreateForm.js';
-import EditForm from './view/EditForm.js';
 import RoutePoint from './view/RoutePoint.js';
-import Model from './model/Model.js';
-import { offersData } from './model/mock-data.js';
+import PointForm from './view/PointForm.js';
 
 export default class Presenter {
-  constructor() {
-    this.model = new Model();
+  constructor({model}) {
+    this.model = model;
   }
 
   render() {
     document.addEventListener('DOMContentLoaded', () => {
       render(new Filter(), document.querySelector('.trip-controls__filters'));
-      render(new CreateForm({
-        type: 'flight',
-        destination: null,
-        dateFrom: null,
-        dateTo: null,
-        basePrice: 0,
-        id: 'new',
-      }), document.querySelector('.trip-events'));
-
-      render(new Sort(), document.querySelector('.trip-events'));
 
       const points = this.model.getPoints();
-      if (points.length > 0) {
-        const firstPoint = points[0];
-        const allOffers = offersData[firstPoint.type] || [];
+      const firstPoint = points[0];
+
+      if (firstPoint) {
+        const allOffers = this.model.getOffers(firstPoint.type);
         const selectedOffers = firstPoint.offers || [];
-        render(new EditForm({
+        render(new PointForm({
           type: firstPoint.type,
           destination: firstPoint.destination,
           dateFrom: firstPoint.dateFrom,
@@ -40,8 +28,15 @@ export default class Presenter {
           offers: allOffers,
           selectedOffers,
           id: firstPoint.id,
+          isEdit: true,
+        }), document.querySelector('.trip-events'), RenderPosition.AFTERBEGIN);
+      } else {
+        render(new PointForm({
+          isEdit: false,
         }), document.querySelector('.trip-events'), RenderPosition.AFTERBEGIN);
       }
+
+      render(new Sort(), document.querySelector('.trip-events'), RenderPosition.AFTERBEGIN);
 
       points.forEach((point) => {
         render(new RoutePoint(point), document.querySelector('.trip-events'));

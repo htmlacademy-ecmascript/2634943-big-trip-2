@@ -1,4 +1,4 @@
-import { generateRoutePoints } from './mock-data.js';
+import { generateRoutePoints, offersData } from './mock-data.js';
 
 export default class Model {
   constructor() {
@@ -7,5 +7,9 @@ export default class Model {
 
   getPoints() {
     return this.points;
+  }
+
+  getOffers(type) {
+    return offersData[type] || [];
   }
 }
