@@ -1,39 +1,52 @@
-import { render } from '../framework/render.js';
-import FilterView from '../views/filter-view.js';
-import SortView from '../views/sorting-view.js';
-import ListView from '../views/list-view.js';
-import PointPresenter from './point-presenter.js';
+import FilterPresenter from './filter-presenter.js';
+import PointListPresenter from './point-list-presenter.js';
 
 export default class TripPresenter {
-  #listComponent = new ListView();
-
+  /** @type {HTMLElement} Контейнер списка точек */
   #tripContainer = null;
 
+  /** @type {HTMLElement} Контейнер фильтров */
   #filterContainer = null;
 
+  /** @type {object} Модель точек маршрута */
   #pointsModel = null;
 
-  #tripPoints = [];
+  /** @type {object} Модель опций */
+  #offersModel = null;
 
-  constructor({ tripContainer, filterContainer, pointsModel }) {
+  /** @type {object} Модель направлений */
+  #destinationsModel = null;
+
+  /**
+   * @param {object} params Параметры презентера
+   * @param {HTMLElement} params.tripContainer Контейнер списка точек
+   * @param {HTMLElement} params.filterContainer Контейнер фильтров
+   * @param {object} params.pointsModel Модель точек маршрута
+   * @param {object} params.offersModel Модель опций
+   * @param {object} params.destinationsModel Модель направлений
+   */
+  constructor({ tripContainer, filterContainer, pointsModel, offersModel, destinationsModel }) {
     this.#tripContainer = tripContainer;
     this.#filterContainer = filterContainer;
     this.#pointsModel = pointsModel;
+    this.#offersModel = offersModel;
+    this.#destinationsModel = destinationsModel;
   }
 
   init() {
-    this.#tripPoints = [...this.#pointsModel.getPoints()];
-
-    render(new FilterView(), this.#filterContainer);
-    render(new SortView(), this.#tripContainer);
-    render(this.#listComponent, this.#tripContainer);
-
-    this.#tripPoints.forEach((point) => {
-      const pointPresenter = new PointPresenter({
-        listContainer: this.#listComponent.element
-      });
-
-      pointPresenter.init(point);
+    const filterPresenter = new FilterPresenter({
+      container: this.#filterContainer,
+      pointsModel: this.#pointsModel
     });
+
+    const pointListPresenter = new PointListPresenter({
+      container: this.#tripContainer,
+      pointsModel: this.#pointsModel,
+      offersModel: this.#offersModel,
+      destinationsModel: this.#destinationsModel
+    });
+
+    filterPresenter.init();
+    pointListPresenter.init();
   }
 }
