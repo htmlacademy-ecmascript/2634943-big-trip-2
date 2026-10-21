@@ -1,14 +1,29 @@
 import AbstractView from '../framework/view/abstract-view.js';
-import { pointDate, pointTime, getPointDuration } from '../utils.js';
+import { capitalize } from '../utils/common.js';
+import { formatPointDate, formatPointTime, getPointDuration } from '../utils/point.js';
 
-const createPointTemplate = (point) => {
+const createOffersTemplate = (offers) => (
+  offers.map((offer) => `
+    <li class="event__offer">
+      <span class="event__offer-title">${offer.title}</span>
+      &plus;&euro;&nbsp;
+      <span class="event__offer-price">${offer.price}</span>
+    </li>
+  `).join('')
+);
+
+const createPointTemplate = ({ point, destination, typeOffers }) => {
   const { basePrice, dateFrom, dateTo, type, isFavorite } = point;
 
-  const dateResult = pointDate(dateFrom);
-  const timeStart = pointTime(dateFrom);
-  const timeEnd = pointTime(dateTo);
+  const dateResult = formatPointDate(dateFrom);
+  const timeStart = formatPointTime(dateFrom);
+  const timeEnd = formatPointTime(dateTo);
   const duration = getPointDuration(dateFrom, dateTo);
   const favoriteClassName = isFavorite ? 'event__favorite-btn--active' : '';
+
+  const title = destination ? `${capitalize(type)} ${destination.name}` : capitalize(type);
+
+  const selectedOffers = typeOffers.filter((offer) => (point.offers ?? []).includes(offer.id));
 
   return `
   <li class="trip-events__item">
@@ -17,7 +32,7 @@ const createPointTemplate = (point) => {
       <div class="event__type">
         <img class="event__type-icon" width="42" height="42" src="img/icons/${type}.png" alt="Event type icon">
       </div>
-      <h3 class="event__title">${type} Amsterdam</h3>
+      <h3 class="event__title">${title}</h3>
       <div class="event__schedule">
         <p class="event__time">
           <time class="event__start-time" datetime="${dateFrom}">${timeStart}</time>
@@ -31,11 +46,7 @@ const createPointTemplate = (point) => {
       </p>
       <h4 class="visually-hidden">Offers:</h4>
       <ul class="event__selected-offers">
-        <li class="event__offer">
-          <span class="event__offer-title">Order Uber</span>
-          &plus;&euro;&nbsp;
-          <span class="event__offer-price">20</span>
-        </li>
+        ${createOffersTemplate(selectedOffers)}
       </ul>
       <button class="event__favorite-btn ${favoriteClassName}" type="button">
         <span class="visually-hidden">Add to favorite</span>
@@ -52,8 +63,16 @@ const createPointTemplate = (point) => {
 };
 
 export default class PointView extends AbstractView {
+  /** @type {object} Точка маршрута */
   #point = null;
 
+  /** @type {object|null} Направление */
+  #destination = null;
+
+  /** @type {Array} Опции типа точки */
+  #typeOffers = [];
+
+  /** @type {Function|null} Обработчик клика по кнопке редактирования */
   #handleEditClick = null;
 
   #editClickHandler = (evt) => {
@@ -61,9 +80,18 @@ export default class PointView extends AbstractView {
     this.#handleEditClick?.();
   };
 
-  constructor({ point, onEditClick }) {
+  /**
+   * @param {object} params Параметры представления
+   * @param {object} params.point Точка маршрута
+   * @param {object} [params.destination] Направление точки
+   * @param {Array} [params.typeOffers] Опции типа точки
+   * @param {Function} [params.onEditClick] Обработчик открытия формы правки
+   */
+  constructor({ point, destination = null, typeOffers = [], onEditClick }) {
     super();
     this.#point = point;
+    this.#destination = destination;
+    this.#typeOffers = typeOffers;
     this.#handleEditClick = onEditClick;
 
     this.element
@@ -72,6 +100,10 @@ export default class PointView extends AbstractView {
   }
 
   get template() {
-    return createPointTemplate(this.#point);
+    return createPointTemplate({
+      point: this.#point,
+      destination: this.#destination,
+      typeOffers: this.#typeOffers
+    });
   }
 }

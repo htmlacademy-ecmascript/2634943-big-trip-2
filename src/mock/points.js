@@ -1,23 +1,51 @@
-import { getRandomArrayElement } from '../utils.js';
-import { mockDestinations, mockOffers, POINT } from '../const.js';
+import dayjs from 'dayjs';
+import { POINT_TYPES } from '../const.js';
+import { getRandomArrayElement } from '../utils/common.js';
+import { getMockDestinations } from './destinations.js';
+import { getMockOffers } from './offers.js';
 
-export const getRandomPoint = () => {
-  const typePoint = getRandomArrayElement(POINT).toLowerCase();
+/** @const {number[]} Смещения точек относительно текущего момента, в часах */
+const POINT_OFFSETS_IN_HOURS = [-48, 0, 48, 72];
 
-  const destination = getRandomArrayElement(mockDestinations);
+/** @const {number} Длительность точки маршрута, в часах */
+const POINT_DURATION_IN_HOURS = 1;
 
-  const typeOffers = mockOffers.find((offer) => offer.type === typePoint);
+/** @const {number} Счётчик для генерации идентификаторов точек */
+let pointIdCounter = 0;
 
-  const offersIds = typeOffers ? typeOffers.offers.map((offer) => offer.id) : [];
+/**
+ * Функция для получения моковой точки маршрута
+ * @param {number} [offsetInHours] Смещение относительно текущего момента, в часах
+ * @returns {object} Точка маршрута
+ */
+export const getMockPoint = (offsetInHours = 0) => {
+  const type = getRandomArrayElement(POINT_TYPES);
+  const destination = getRandomArrayElement(getMockDestinations());
+  const typeOffers = getMockOffers().find((group) => group.type === type);
+  const offers = typeOffers ? typeOffers.offers.map((offer) => offer.id) : [];
+
+  const dateFrom = dayjs().add(offsetInHours, 'hour');
+  const dateTo = dateFrom.add(POINT_DURATION_IN_HOURS, 'hour');
+
+  pointIdCounter += 1;
 
   return {
-    id: `point-${Math.floor(Math.random() * 1000)}`,
+    id: `point-${pointIdCounter}`,
     basePrice: Math.floor(Math.random() * 500) + 20,
-    dateFrom: '2026-03-18T10:30:00.000Z',
-    dateTo: '2026-03-18T11:00:00.000Z',
+    dateFrom: dateFrom.toISOString(),
+    dateTo: dateTo.toISOString(),
     destination: destination.id,
     isFavorite: Math.random() > 0.5,
-    offers: offersIds,
-    type: typePoint
+    offers,
+    type
   };
 };
+
+/**
+ * Функция для получения набора моковых точек маршрута
+ * @param {number} [count] Количество точек
+ * @returns {Array} Массив точек маршрута
+ */
+export const getMockPoints = (count = POINT_OFFSETS_IN_HOURS.length) => (
+  Array.from({ length: count }, (_, index) => getMockPoint(POINT_OFFSETS_IN_HOURS[index % POINT_OFFSETS_IN_HOURS.length]))
+);
