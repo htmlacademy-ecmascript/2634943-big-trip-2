@@ -140,6 +140,17 @@ export default class PointPresenter {
     this.#replaceFormToPoint();
   }
 
+  /** Метод удаления представления точки маршрута */
+  destroy() {
+    if (!this.#pointComponent) {
+      return;
+    }
+
+    remove(this.#pointComponent);
+    remove(this.#formComponent);
+    document.removeEventListener('keydown', this.#escDownHandler);
+  }
+
   /** Метод подмены точки маршрута на форму её правки */
   #replacePointToForm() {
     this.#handleBeforeEdit?.();
