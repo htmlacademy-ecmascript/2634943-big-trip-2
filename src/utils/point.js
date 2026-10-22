@@ -38,6 +38,14 @@ export const formatPointTime = (date) => (date ? dayjs(date).format(POINT_TIME_F
 export const formatFormDate = (date) => (date ? dayjs(date).format(FORM_DATE_FORMAT) : '');
 
 /**
+ * Функция для вычисления длительности точки в минутах
+ * @param {string|Date} dateFrom Начало
+ * @param {string|Date} dateTo Окончание
+ * @returns {number} Длительность в минутах
+ */
+export const getPointDurationInMinutes = (dateFrom, dateTo) => dayjs(dateTo).diff(dayjs(dateFrom), 'minute');
+
+/**
  * Функция для вычисления длительности точки
  * @param {string|Date} dateFrom Начало
  * @param {string|Date} dateTo Окончание
@@ -48,7 +56,7 @@ export const getPointDuration = (dateFrom, dateTo) => {
     return '';
   }
 
-  const diffInMinutes = dayjs(dateTo).diff(dayjs(dateFrom), 'minute');
+  const diffInMinutes = getPointDurationInMinutes(dateFrom, dateTo);
   const days = Math.floor(diffInMinutes / (24 * 60));
   const hours = Math.floor((diffInMinutes % (24 * 60)) / 60);
   const minutes = diffInMinutes % 60;

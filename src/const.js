@@ -29,3 +29,10 @@ export const FilterType = {
   PRESENT: 'present',
   PAST: 'past'
 };
+
+/** @enum {string} Перечисление типов сортировки */
+export const SortType = {
+  DAY: 'day',
+  TIME: 'time',
+  PRICE: 'price'
+};
