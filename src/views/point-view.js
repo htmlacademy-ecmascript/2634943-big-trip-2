@@ -75,9 +75,17 @@ export default class PointView extends AbstractView {
   /** @type {Function|null} Обработчик клика по кнопке редактирования */
   #handleEditClick = null;
 
+  /** @type {Function|null} Обработчик клика по кнопке «в избранное» */
+  #handleFavoriteClick = null;
+
   #editClickHandler = (evt) => {
     evt.preventDefault();
     this.#handleEditClick?.();
+  };
+
+  #favoriteClickHandler = (evt) => {
+    evt.preventDefault();
+    this.#handleFavoriteClick?.();
   };
 
   /**
@@ -86,17 +94,23 @@ export default class PointView extends AbstractView {
    * @param {object} [params.destination] Направление точки
    * @param {Array} [params.typeOffers] Опции типа точки
    * @param {Function} [params.onEditClick] Обработчик открытия формы правки
+   * @param {Function} [params.onFavoriteClick] Обработчик клика по кнопке «в избранное»
    */
-  constructor({ point, destination = null, typeOffers = [], onEditClick }) {
+  constructor({ point, destination = null, typeOffers = [], onEditClick, onFavoriteClick }) {
     super();
     this.#point = point;
     this.#destination = destination;
     this.#typeOffers = typeOffers;
     this.#handleEditClick = onEditClick;
+    this.#handleFavoriteClick = onFavoriteClick;
 
     this.element
       .querySelector('.event__rollup-btn')
       .addEventListener('click', this.#editClickHandler);
+
+    this.element
+      .querySelector('.event__favorite-btn')
+      .addEventListener('click', this.#favoriteClickHandler);
   }
 
   get template() {
