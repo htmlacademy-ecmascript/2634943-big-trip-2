@@ -40,6 +40,8 @@ export const UserAction = {
 
 /** @enum {string} Перечисление типов обновления */
 export const UpdateType = {
+  INIT: 'INIT',
+  FAILED: 'FAILED',
   PATCH: 'PATCH',
   MINOR: 'MINOR',
   MAJOR: 'MAJOR'

@@ -135,8 +135,8 @@ export default class PointListPresenter {
    * Обработчик изменения данных точки маршрута
    * @param {object} updatedPoint Обновлённая точка маршрута
    */
-  #handlePointChange = (updatedPoint) => {
-    this.#pointsModel.updatePoint(UpdateType.MINOR, updatedPoint);
+  #handlePointChange = async (updatedPoint) => {
+    await this.#pointsModel.updatePoint(updatedPoint);
   };
 
   /**
