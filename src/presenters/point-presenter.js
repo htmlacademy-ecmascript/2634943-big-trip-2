@@ -31,6 +31,9 @@ export default class PointPresenter {
   /** @type {FormView|null} Представление формы правки */
   #formComponent = null;
 
+  /** @type {object|null} Блокировщик интерфейса */
+  #uiBlocker = null;
+
   /** @type {string} Текущий режим отображения точки */
   #mode = Mode.DEFAULT;
 
@@ -57,16 +60,18 @@ export default class PointPresenter {
    * @param {object} params.offersModel Модель опций
    * @param {object} params.destinationsModel Модель направлений
    * @param {object} params.pointsModel Модель точек маршрута
+   * @param {object} params.uiBlocker Блокировщик интерфейса
    * @param {Function} [params.onDataChange] Обработчик изменения данных точки
    * @param {Function} [params.onDeleteClick] Обработчик удаления точки
    * @param {Function} [params.onBeforeEdit] Обработчик, вызываемый перед открытием формы правки
    */
-  constructor({ listContainer, point, offersModel, destinationsModel, pointsModel, onDataChange, onDeleteClick, onBeforeEdit }) {
+  constructor({ listContainer, point, offersModel, destinationsModel, pointsModel, uiBlocker, onDataChange, onDeleteClick, onBeforeEdit }) {
     this.#listContainer = listContainer;
     this.#point = point;
     this.#offersModel = offersModel;
     this.#destinationsModel = destinationsModel;
     this.#pointsModel = pointsModel;
+    this.#uiBlocker = uiBlocker;
     this.#handleDataChange = onDataChange;
     this.#handleDeleteClick = onDeleteClick;
     this.#handleBeforeEdit = onBeforeEdit;
@@ -184,15 +189,28 @@ export default class PointPresenter {
     this.#replacePointToForm();
   };
 
-  #handleFavoriteClick = () => {
-    this.#handleDataChange?.({
-      ...this.#point,
-      isFavorite: !this.#point.isFavorite
-    }, UserAction.UPDATE_POINT, UpdateType.PATCH);
+  #handleFavoriteClick = async () => {
+    try {
+      await this.#handleDataChange?.({
+        ...this.#point,
+        isFavorite: !this.#point.isFavorite
+      }, UserAction.UPDATE_POINT, UpdateType.PATCH);
+    } catch (err) {
+      this.#pointComponent.shake();
+    }
   };
 
-  #handleFormDeleteClick = () => {
-    this.#handleDeleteClick?.(this.#point, UserAction.DELETE_POINT);
+  #handleFormDeleteClick = async () => {
+    this.#formComponent.setDeleting();
+    await this.#uiBlocker.block();
+
+    try {
+      await this.#handleDeleteClick?.(this.#point, UserAction.DELETE_POINT);
+    } catch (err) {
+      this.#formComponent.setAborting();
+    } finally {
+      this.#uiBlocker.unblock();
+    }
   };
 
   #handleFormSubmit = async () => {
@@ -202,8 +220,20 @@ export default class PointPresenter {
       id: this.#point.id
     };
 
-    await this.#handleDataChange?.(updatedPoint, UserAction.UPDATE_POINT, UpdateType.MINOR);
-    this.#replaceFormToPoint();
+    this.#formComponent.setSaving();
+    await this.#uiBlocker.block();
+
+    try {
+      await this.#handleDataChange?.(updatedPoint, UserAction.UPDATE_POINT, UpdateType.MINOR);
+
+      if (this.#formComponent.element.parentElement) {
+        this.#replaceFormToPoint();
+      }
+    } catch (err) {
+      this.#formComponent.setAborting();
+    } finally {
+      this.#uiBlocker.unblock();
+    }
   };
 
   #handleRollupClick = () => {

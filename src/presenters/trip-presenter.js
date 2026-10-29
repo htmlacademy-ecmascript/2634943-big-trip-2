@@ -5,6 +5,7 @@ import NewPointPresenter from './new-point-presenter.js';
 import NewPointButtonView from '../views/new-point-button-view.js';
 import MessageView from '../views/message-view.js';
 import FilterModel from '../models/filter-model.js';
+import UiBlocker from '../framework/ui-blocker.js';
 import { FilterType, UpdateType } from '../const.js';
 
 export default class TripPresenter {
@@ -41,6 +42,9 @@ export default class TripPresenter {
   /** @type {MessageView|null} Представление сообщения о состоянии загрузки */
   #messageComponent = null;
 
+  /** @type {UiBlocker|null} Блокировщик интерфейса */
+  #uiBlocker = null;
+
   /**
    * @param {object} params Параметры презентера
    * @param {HTMLElement} params.tripContainer Контейнер списка точек
@@ -67,12 +71,15 @@ export default class TripPresenter {
       filterModel: this.#filterModel
     });
 
+    this.#uiBlocker = new UiBlocker();
+
     this.#pointListPresenter = new PointListPresenter({
       container: this.#tripContainer,
       pointsModel: this.#pointsModel,
       filterModel: this.#filterModel,
       offersModel: this.#offersModel,
       destinationsModel: this.#destinationsModel,
+      uiBlocker: this.#uiBlocker,
       onModeChange: this.#handleModeChange
     });
 
@@ -81,6 +88,7 @@ export default class TripPresenter {
       pointsModel: this.#pointsModel,
       offersModel: this.#offersModel,
       destinationsModel: this.#destinationsModel,
+      uiBlocker: this.#uiBlocker,
       onModeChange: this.#handleModeChange,
       onClose: this.#handleNewPointClose
     });

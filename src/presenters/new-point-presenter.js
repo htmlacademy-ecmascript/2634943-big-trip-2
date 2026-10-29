@@ -24,6 +24,9 @@ export default class NewPointPresenter {
   /** @type {FormView|null} Представление формы создания */
   #formComponent = null;
 
+  /** @type {object|null} Блокировщик интерфейса */
+  #uiBlocker = null;
+
   /** @type {boolean} Открыта ли форма создания */
   #isFormOpen = false;
 
@@ -40,14 +43,16 @@ export default class NewPointPresenter {
    * @param {object} params.pointsModel Модель точек маршрута
    * @param {object} params.offersModel Модель опций
    * @param {object} params.destinationsModel Модель направлений
+   * @param {object} params.uiBlocker Блокировщик интерфейса
    * @param {Function} [params.onModeChange] Обработчик смены режима отображения форм
    * @param {Function} [params.onClose] Обработчик закрытия формы создания
    */
-  constructor({ container, pointsModel, offersModel, destinationsModel, onModeChange, onClose }) {
+  constructor({ container, pointsModel, offersModel, destinationsModel, uiBlocker, onModeChange, onClose }) {
     this.#container = container;
     this.#pointsModel = pointsModel;
     this.#offersModel = offersModel;
     this.#destinationsModel = destinationsModel;
+    this.#uiBlocker = uiBlocker;
     this.#onModeChange = onModeChange;
     this.#onClose = onClose;
   }
@@ -89,11 +94,10 @@ export default class NewPointPresenter {
   }
 
   /** Обработчик отправки формы создания */
-  #handleFormSubmit = () => {
+  #handleFormSubmit = async () => {
     const state = this.#formComponent._state;
 
     const newPoint = {
-      id: String(Date.now() + Math.random()),
       basePrice: state.basePrice,
       dateFrom: state.dateFrom instanceof Date ? state.dateFrom.toISOString() : state.dateFrom,
       dateTo: state.dateTo instanceof Date ? state.dateTo.toISOString() : state.dateTo,
@@ -103,7 +107,16 @@ export default class NewPointPresenter {
       type: state.type
     };
 
-    this.#pointsModel.addPoint(UpdateType.MAJOR, newPoint);
-    this.closeForm();
+    this.#formComponent.setSaving();
+    await this.#uiBlocker.block();
+
+    try {
+      await this.#pointsModel.addPoint(UpdateType.MAJOR, newPoint);
+      this.closeForm();
+    } catch (err) {
+      this.#formComponent.setAborting();
+    } finally {
+      this.#uiBlocker.unblock();
+    }
   };
 }

@@ -61,3 +61,12 @@ export const SortType = {
   TIME: 'time',
   PRICE: 'price'
 };
+
+/** @enum {string} Тексты кнопок формы */
+export const ButtonText = {
+  SAVE: 'Save',
+  DELETE: 'Delete',
+  CANCEL: 'Cancel',
+  SAVING: 'Saving...',
+  DELETING: 'Deleting...'
+};

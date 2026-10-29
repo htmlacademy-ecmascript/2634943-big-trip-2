@@ -1,5 +1,5 @@
 import AbstractStatefulView from '../framework/view/abstract-stateful-view.js';
-import { BLANK_POINT } from '../const.js';
+import { BLANK_POINT, ButtonText } from '../const.js';
 import { createPointFormTemplate } from './form-template.js';
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.min.css';
@@ -235,5 +235,42 @@ export default class FormView extends AbstractStatefulView {
 
   reset(point) {
     this.updateElement(FormView.parsePointToState(point));
+  }
+
+  setSaving() {
+    const saveBtn = this.element.querySelector('.event__save-btn');
+
+    if (saveBtn) {
+      saveBtn.textContent = ButtonText.SAVING;
+      saveBtn.disabled = true;
+    }
+  }
+
+  setDeleting() {
+    const resetBtn = this.element.querySelector('.event__reset-btn');
+
+    if (resetBtn) {
+      resetBtn.textContent = ButtonText.DELETING;
+      resetBtn.disabled = true;
+    }
+  }
+
+  setDefault() {
+    const saveBtn = this.element.querySelector('.event__save-btn');
+    const resetBtn = this.element.querySelector('.event__reset-btn');
+
+    if (saveBtn) {
+      saveBtn.textContent = ButtonText.SAVE;
+      saveBtn.disabled = false;
+    }
+
+    if (resetBtn) {
+      resetBtn.textContent = this.#mode === 'edit' ? ButtonText.DELETE : ButtonText.CANCEL;
+      resetBtn.disabled = false;
+    }
+  }
+
+  setAborting() {
+    this.shake(() => this.setDefault());
   }
 }

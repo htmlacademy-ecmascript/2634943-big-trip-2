@@ -6,6 +6,8 @@ const AUTHORIZATION = 'Basic h3j9k2m8p4q6w1';
 const Method = {
   GET: 'GET',
   PUT: 'PUT',
+  POST: 'POST',
+  DELETE: 'DELETE',
 };
 
 export default class TripApiService extends ApiService {
@@ -38,6 +40,24 @@ export default class TripApiService extends ApiService {
       .then((updatedPoint) => this.#adaptToClient(updatedPoint));
   }
 
+  addPoint(point) {
+    return this._load({
+      url: 'points',
+      method: Method.POST,
+      body: JSON.stringify(this.#adaptToServer(point)),
+      headers: new Headers({ 'Content-Type': 'application/json' }),
+    })
+      .then(ApiService.parseResponse)
+      .then((newPoint) => this.#adaptToClient(newPoint));
+  }
+
+  deletePoint(point) {
+    return this._load({
+      url: `points/${point.id}`,
+      method: Method.DELETE,
+    });
+  }
+
   #adaptToServer(point) {
     return {
       id: point.id,
@@ -51,6 +71,7 @@ export default class TripApiService extends ApiService {
       offers: point.offers,
       // eslint-disable-next-line camelcase
       is_favorite: point.isFavorite,
+      type: point.type,
     };
   }
 
