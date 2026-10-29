@@ -90,3 +90,81 @@ export const isPointPast = (point) => dayjs(point.dateTo).isBefore(dayjs());
  * @returns {boolean} Точка не в прошлом и не в будущем
  */
 export const isPointPresent = (point) => !isPointFuture(point) && !isPointPast(point);
+
+/** @const {string} Формат даты в блоке информации о поездке */
+const TRIP_INFO_DATE_FORMAT = 'DD MMM';
+
+/**
+ * Функция для сортировки точек по дате начала
+ * @param {object} a Первая точка
+ * @param {object} b Вторая точка
+ * @returns {number} Результат сравнения дат
+ */
+const sortPointsByDate = (a, b) => dayjs(a.dateFrom).diff(dayjs(b.dateFrom));
+
+/**
+ * Функция для формирования строки маршрута
+ * @param {Array} points Точки маршрута
+ * @param {object} destinationsModel Модель направлений
+ * @returns {string} Строка маршрута
+ */
+export const buildRouteString = (points, destinationsModel) => {
+  const sortedPoints = [...points].sort(sortPointsByDate);
+  const cities = sortedPoints.map((point) => destinationsModel.getById(point.destination)?.name ?? '');
+
+  if (cities.length > 3) {
+    return `${cities[0]} &mdash; ... &mdash; ${cities[cities.length - 1]}`;
+  }
+
+  return cities.join(' &mdash; ');
+};
+
+/**
+ * Функция для формирования строки дат по первой и последней точке
+ * @param {Array} points Точки маршрута
+ * @returns {string} Строка дат
+ */
+export const buildDatesString = (points) => {
+  const sortedPoints = [...points].sort(sortPointsByDate);
+  const firstDate = dayjs(sortedPoints[0].dateFrom);
+  const lastDate = dayjs(sortedPoints[sortedPoints.length - 1].dateTo);
+
+  const formatDate = (date) => date.format(TRIP_INFO_DATE_FORMAT).toUpperCase();
+
+  const start = formatDate(firstDate);
+  const end = formatDate(lastDate);
+
+  if (firstDate.isSame(lastDate, 'month')) {
+    const startDay = start.slice(0, start.indexOf(' '));
+    return `${startDay}–${end}`;
+  }
+
+  return `${start} – ${end}`;
+};
+
+/**
+ * Функция для вычисления стоимости опций точки
+ * @param {object} point Точка маршрута
+ * @param {object} offersModel Модель опций
+ * @returns {number} Стоимость опций точки
+ */
+const calcOffersPrice = (point, offersModel) => {
+  const offers = offersModel.getByType(point.type);
+
+  return point.offers.reduce(
+    (sum, offerId) => sum + (offers.find((item) => item.id === offerId)?.price ?? 0),
+    0
+  );
+};
+
+/**
+ * Функция для вычисления общей стоимости поездки
+ * @param {Array} points Точки маршрута
+ * @param {object} offersModel Модель опций
+ * @returns {number} Общая стоимость
+ */
+export const calcTotalPrice = (points, offersModel) =>
+  points.reduce(
+    (total, point) => total + point.basePrice + calcOffersPrice(point, offersModel),
+    0
+  );

@@ -1,9 +1,10 @@
-import { render, remove } from '../framework/render.js';
+import { render, remove, RenderPosition } from '../framework/render.js';
 import FilterPresenter from './filter-presenter.js';
 import PointListPresenter from './point-list-presenter.js';
 import NewPointPresenter from './new-point-presenter.js';
 import NewPointButtonView from '../views/new-point-button-view.js';
 import MessageView from '../views/message-view.js';
+import TripInfoView from '../views/trip-info-view.js';
 import FilterModel from '../models/filter-model.js';
 import UiBlocker from '../framework/ui-blocker.js';
 import { FilterType, UpdateType } from '../const.js';
@@ -38,6 +39,9 @@ export default class TripPresenter {
 
   /** @type {NewPointButtonView|null} Представление кнопки создания точки */
   #newPointButtonComponent = null;
+
+  /** @type {TripInfoView|null} Представление информации о поездке */
+  #tripInfoComponent = null;
 
   /** @type {MessageView|null} Представление сообщения о состоянии загрузки */
   #messageComponent = null;
@@ -133,12 +137,18 @@ export default class TripPresenter {
       case UpdateType.INIT:
         this.#removeMessage();
         this.#renderNewPointButton();
+        this.#renderTripInfo();
         this.#filterPresenter.init();
         this.#pointListPresenter.init();
         break;
       case UpdateType.FAILED:
         this.#removeMessage();
         this.#renderMessage('Failed to load latest route information');
+        break;
+      case UpdateType.PATCH:
+      case UpdateType.MINOR:
+      case UpdateType.MAJOR:
+        this.#renderTripInfo();
         break;
       default:
         break;
@@ -155,5 +165,23 @@ export default class TripPresenter {
   #removeMessage() {
     remove(this.#messageComponent);
     this.#messageComponent = null;
+  }
+
+  /** Метод отрисовки информации о поездке */
+  #renderTripInfo() {
+    const tripMainElement = this.#filterContainer.parentElement.parentElement;
+
+    if (this.#tripInfoComponent) {
+      remove(this.#tripInfoComponent);
+    }
+
+    const points = this.#pointsModel.getPoints();
+    this.#tripInfoComponent = new TripInfoView({
+      points,
+      destinationsModel: this.#destinationsModel,
+      offersModel: this.#offersModel
+    });
+
+    render(this.#tripInfoComponent, tripMainElement, RenderPosition.AFTERBEGIN);
   }
 }
