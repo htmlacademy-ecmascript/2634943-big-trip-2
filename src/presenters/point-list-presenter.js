@@ -44,6 +44,9 @@ export default class PointListPresenter {
   /** @type {Map<string, PointPresenter>} Презентеры точек маршрута */
   #pointPresenters = new Map();
 
+  /** @type {object|null} Блокировщик интерфейса */
+  #uiBlocker = null;
+
   /**
    * @param {object} params Параметры презентера
    * @param {HTMLElement} params.container Контейнер списка точек
@@ -51,14 +54,16 @@ export default class PointListPresenter {
    * @param {object} params.filterModel Модель фильтра
    * @param {object} params.offersModel Модель опций
    * @param {object} params.destinationsModel Модель направлений
+   * @param {object} params.uiBlocker Блокировщик интерфейса
    * @param {Function} [params.onModeChange] Обработчик смены режима отображения форм
    */
-  constructor({ container, pointsModel, filterModel, offersModel, destinationsModel, onModeChange }) {
+  constructor({ container, pointsModel, filterModel, offersModel, destinationsModel, uiBlocker, onModeChange }) {
     this.#container = container;
     this.#pointsModel = pointsModel;
     this.#filterModel = filterModel;
     this.#offersModel = offersModel;
     this.#destinationsModel = destinationsModel;
+    this.#uiBlocker = uiBlocker;
     this.#onModeChange = onModeChange;
   }
 
@@ -121,6 +126,7 @@ export default class PointListPresenter {
       offersModel: this.#offersModel,
       destinationsModel: this.#destinationsModel,
       pointsModel: this.#pointsModel,
+      uiBlocker: this.#uiBlocker,
       onDataChange: this.#handlePointChange,
       onDeleteClick: this.#handlePointDelete,
       onBeforeEdit: this.#resetPointViews
@@ -143,8 +149,8 @@ export default class PointListPresenter {
    * Обработчик удаления точки маршрута
    * @param {object} point Точка маршрута для удаления
    */
-  #handlePointDelete = (point) => {
-    this.#pointsModel.deletePoint(UpdateType.MAJOR, point);
+  #handlePointDelete = async (point) => {
+    await this.#pointsModel.deletePoint(UpdateType.MAJOR, point);
   };
 
   /**

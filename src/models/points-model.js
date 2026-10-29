@@ -77,19 +77,28 @@ export default class PointsModel extends Observable {
   }
 
   /**
+   * Отправляет новую точку на сервер и только после успеха добавляет её локально
    * @param {string} updateType Тип обновления
    * @param {object} update Новая точка маршрута
+   * @returns {Promise<object>} Созданная точка маршрута
    */
-  addPoint(updateType, update) {
-    this.#points = [update, ...this.#points];
-    this._notify(updateType, update);
+  async addPoint(updateType, update) {
+    const newPoint = await this.#tripApiService.addPoint(update);
+
+    this.#points = [newPoint, ...this.#points];
+    this._notify(updateType, newPoint);
+
+    return newPoint;
   }
 
   /**
+   * Отправляет запрос на удаление точки на сервер и только после успеха удаляет её локально
    * @param {string} updateType Тип обновления
    * @param {object} update Точка маршрута для удаления
    */
-  deletePoint(updateType, update) {
+  async deletePoint(updateType, update) {
+    await this.#tripApiService.deletePoint(update);
+
     const index = this.#points.findIndex((point) => point.id === update.id);
 
     if (index === -1) {
