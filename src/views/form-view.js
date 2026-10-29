@@ -1,6 +1,8 @@
 import AbstractStatefulView from '../framework/view/abstract-stateful-view.js';
 import { BLANK_POINT } from '../const.js';
 import { createPointFormTemplate } from './form-template.js';
+import flatpickr from 'flatpickr';
+import 'flatpickr/dist/flatpickr.min.css';
 
 export default class FormView extends AbstractStatefulView {
   /** @type {Array} Все опции по типам */
@@ -20,6 +22,10 @@ export default class FormView extends AbstractStatefulView {
 
   /** @type {string} Режим формы */
   #mode = 'create';
+
+  #datepickerFrom = null;
+
+  #datepickerTo = null;
 
   #formSubmitHandler = (evt) => {
     evt.preventDefault();
@@ -61,6 +67,18 @@ export default class FormView extends AbstractStatefulView {
     const checkedOffers = this.element.querySelectorAll('.event__offer-checkbox:checked');
     const selectedIds = Array.from(checkedOffers).map((element) => element.id.replace('event-offer-', ''));
     this._setState({ offers: selectedIds });
+  };
+
+  #dateFromChangeHandler = ([userDate]) => {
+    this._setState({ dateFrom: userDate });
+
+    if (this.#datepickerTo) {
+      this.#datepickerTo.set('minDate', userDate);
+    }
+  };
+
+  #dateToChangeHandler = ([userDate]) => {
+    this._setState({ dateTo: userDate });
   };
 
   /**
@@ -146,6 +164,54 @@ export default class FormView extends AbstractStatefulView {
     if (offersContainer) {
       offersContainer.addEventListener('change', this.#offersChangeHandler);
     }
+
+    this.#setDatepickers();
+  }
+
+  #setDatepickers() {
+    const dateFromInput = this.element.querySelector('#event-start-time-1');
+    const dateToInput = this.element.querySelector('#event-end-time-1');
+
+    if (this.#datepickerFrom) {
+      this.#datepickerFrom.destroy();
+    }
+
+    if (this.#datepickerTo) {
+      this.#datepickerTo.destroy();
+    }
+
+    this.#datepickerFrom = flatpickr(dateFromInput, {
+      enableTime: true,
+      dateFormat: 'd/m/y H:i',
+      // eslint-disable-next-line camelcase
+      time_24hr: true,
+      defaultDate: this._state.dateFrom,
+      onChange: this.#dateFromChangeHandler
+    });
+
+    this.#datepickerTo = flatpickr(dateToInput, {
+      enableTime: true,
+      dateFormat: 'd/m/y H:i',
+      // eslint-disable-next-line camelcase
+      time_24hr: true,
+      defaultDate: this._state.dateTo,
+      minDate: this._state.dateFrom,
+      onChange: this.#dateToChangeHandler
+    });
+  }
+
+  removeElement() {
+    if (this.#datepickerFrom) {
+      this.#datepickerFrom.destroy();
+      this.#datepickerFrom = null;
+    }
+
+    if (this.#datepickerTo) {
+      this.#datepickerTo.destroy();
+      this.#datepickerTo = null;
+    }
+
+    super.removeElement();
   }
 
   reset(point) {
