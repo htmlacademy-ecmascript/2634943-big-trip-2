@@ -1,5 +1,10 @@
+import { render } from '../framework/render.js';
 import FilterPresenter from './filter-presenter.js';
 import PointListPresenter from './point-list-presenter.js';
+import NewPointPresenter from './new-point-presenter.js';
+import NewPointButtonView from '../views/new-point-button-view.js';
+import FilterModel from '../models/filter-model.js';
+import { FilterType, UpdateType } from '../const.js';
 
 export default class TripPresenter {
   /** @type {HTMLElement} Контейнер списка точек */
@@ -16,6 +21,21 @@ export default class TripPresenter {
 
   /** @type {object} Модель направлений */
   #destinationsModel = null;
+
+  /** @type {object} Модель фильтра */
+  #filterModel = null;
+
+  /** @type {FilterPresenter|null} Презентер фильтров */
+  #filterPresenter = null;
+
+  /** @type {PointListPresenter|null} Презентер списка точек */
+  #pointListPresenter = null;
+
+  /** @type {NewPointPresenter|null} Презентер создания точки */
+  #newPointPresenter = null;
+
+  /** @type {NewPointButtonView|null} Представление кнопки создания точки */
+  #newPointButtonComponent = null;
 
   /**
    * @param {object} params Параметры презентера
@@ -34,19 +54,62 @@ export default class TripPresenter {
   }
 
   init() {
-    const filterPresenter = new FilterPresenter({
+    this.#filterModel = new FilterModel();
+
+    this.#filterPresenter = new FilterPresenter({
       container: this.#filterContainer,
-      pointsModel: this.#pointsModel
+      pointsModel: this.#pointsModel,
+      filterModel: this.#filterModel
     });
 
-    const pointListPresenter = new PointListPresenter({
+    this.#pointListPresenter = new PointListPresenter({
+      container: this.#tripContainer,
+      pointsModel: this.#pointsModel,
+      filterModel: this.#filterModel,
+      offersModel: this.#offersModel,
+      destinationsModel: this.#destinationsModel,
+      onModeChange: this.#handleModeChange
+    });
+
+    this.#newPointPresenter = new NewPointPresenter({
       container: this.#tripContainer,
       pointsModel: this.#pointsModel,
       offersModel: this.#offersModel,
-      destinationsModel: this.#destinationsModel
+      destinationsModel: this.#destinationsModel,
+      onModeChange: this.#handleModeChange,
+      onClose: this.#handleNewPointClose
     });
 
-    filterPresenter.init();
-    pointListPresenter.init();
+    this.#renderNewPointButton();
+
+    this.#filterPresenter.init();
+    this.#pointListPresenter.init();
   }
+
+  /** Метод отрисовки кнопки «New event» */
+  #renderNewPointButton() {
+    this.#newPointButtonComponent = new NewPointButtonView({
+      onClick: this.#handleNewPointButtonClick
+    });
+
+    render(this.#newPointButtonComponent, this.#filterContainer.parentElement.parentElement);
+  }
+
+  /** Обработчик клика по кнопке «New event» */
+  #handleNewPointButtonClick = () => {
+    this.#pointListPresenter.resetView();
+    this.#filterModel.setFilter(UpdateType.MAJOR, FilterType.EVERYTHING);
+    this.#newPointButtonComponent.disable();
+    this.#newPointPresenter.openForm();
+  };
+
+  /** Обработчик смены режима отображения форм: закрывает формы других презентеров */
+  #handleModeChange = () => {
+    this.#newPointPresenter.closeForm();
+  };
+
+  /** Обработчик закрытия формы создания: разблокирует кнопку «New event» */
+  #handleNewPointClose = () => {
+    this.#newPointButtonComponent.enable();
+  };
 }
