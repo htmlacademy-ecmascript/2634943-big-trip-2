@@ -1,6 +1,7 @@
 import { render, replace, remove } from '../framework/render.js';
 import PointView from '../views/point-view.js';
 import FormView from '../views/form-view.js';
+import { UserAction, UpdateType } from '../const.js';
 
 /** @enum {string} Режим отображения точки маршрута */
 const Mode = {
@@ -21,6 +22,9 @@ export default class PointPresenter {
   /** @type {object|null} Модель направлений */
   #destinationsModel = null;
 
+  /** @type {object|null} Модель точек маршрута */
+  #pointsModel = null;
+
   /** @type {PointView|null} Представление точки */
   #pointComponent = null;
 
@@ -32,6 +36,9 @@ export default class PointPresenter {
 
   /** @type {Function|null} Обработчик изменения данных точки */
   #handleDataChange = null;
+
+  /** @type {Function|null} Обработчик удаления точки */
+  #handleDeleteClick = null;
 
   /** @type {Function|null} Обработчик, вызываемый перед открытием формы правки */
   #handleBeforeEdit = null;
@@ -49,15 +56,19 @@ export default class PointPresenter {
    * @param {object} params.point Точка маршрута
    * @param {object} params.offersModel Модель опций
    * @param {object} params.destinationsModel Модель направлений
+   * @param {object} params.pointsModel Модель точек маршрута
    * @param {Function} [params.onDataChange] Обработчик изменения данных точки
+   * @param {Function} [params.onDeleteClick] Обработчик удаления точки
    * @param {Function} [params.onBeforeEdit] Обработчик, вызываемый перед открытием формы правки
    */
-  constructor({ listContainer, point, offersModel, destinationsModel, onDataChange, onBeforeEdit }) {
+  constructor({ listContainer, point, offersModel, destinationsModel, pointsModel, onDataChange, onDeleteClick, onBeforeEdit }) {
     this.#listContainer = listContainer;
     this.#point = point;
     this.#offersModel = offersModel;
     this.#destinationsModel = destinationsModel;
+    this.#pointsModel = pointsModel;
     this.#handleDataChange = onDataChange;
+    this.#handleDeleteClick = onDeleteClick;
     this.#handleBeforeEdit = onBeforeEdit;
   }
 
@@ -79,6 +90,7 @@ export default class PointPresenter {
       offers: this.#offersModel.getOffers(),
       destinations: this.#destinationsModel.getDestinations(),
       onFormSubmit: this.#handleFormSubmit,
+      onDeleteClick: this.#handleFormDeleteClick,
       onRollupClick: this.#handleRollupClick,
       mode: 'edit'
     });
@@ -112,6 +124,7 @@ export default class PointPresenter {
       offers: this.#offersModel.getOffers(),
       destinations: this.#destinationsModel.getDestinations(),
       onFormSubmit: this.#handleFormSubmit,
+      onDeleteClick: this.#handleFormDeleteClick,
       onRollupClick: this.#handleRollupClick,
       mode: 'edit'
     });
@@ -172,10 +185,24 @@ export default class PointPresenter {
   };
 
   #handleFavoriteClick = () => {
-    this.#handleDataChange?.({ ...this.#point, isFavorite: !this.#point.isFavorite });
+    this.#handleDataChange?.({
+      ...this.#point,
+      isFavorite: !this.#point.isFavorite
+    }, UserAction.UPDATE_POINT, UpdateType.PATCH);
+  };
+
+  #handleFormDeleteClick = () => {
+    this.#handleDeleteClick?.(this.#point, UserAction.DELETE_POINT);
   };
 
   #handleFormSubmit = () => {
+    const updatedPoint = {
+      ...this.#point,
+      ...this.#formComponent._state,
+      id: this.#point.id
+    };
+
+    this.#handleDataChange?.(updatedPoint, UserAction.UPDATE_POINT, UpdateType.MINOR);
     this.#replaceFormToPoint();
   };
 

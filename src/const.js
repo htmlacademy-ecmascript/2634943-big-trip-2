@@ -17,6 +17,7 @@ export const BLANK_POINT = {
   dateFrom: null,
   dateTo: null,
   destination: null,
+  id: String(Date.now() + Math.random()),
   isFavorite: false,
   offers: [],
   type: 'flight'
@@ -28,6 +29,28 @@ export const FilterType = {
   FUTURE: 'future',
   PRESENT: 'present',
   PAST: 'past'
+};
+
+/** @enum {string} Перечисление действий пользователя */
+export const UserAction = {
+  UPDATE_POINT: 'UPDATE_POINT',
+  ADD_POINT: 'ADD_POINT',
+  DELETE_POINT: 'DELETE_POINT'
+};
+
+/** @enum {string} Перечисление типов обновления */
+export const UpdateType = {
+  PATCH: 'PATCH',
+  MINOR: 'MINOR',
+  MAJOR: 'MAJOR'
+};
+
+/** @const {Object} Тексты заглушки для каждого типа фильтра */
+export const noPointsTextType = {
+  [FilterType.EVERYTHING]: 'Click New Event to create your first point',
+  [FilterType.FUTURE]: 'There are no future events now',
+  [FilterType.PRESENT]: 'There are no present events now',
+  [FilterType.PAST]: 'There are no past events now'
 };
 
 /** @enum {string} Перечисление типов сортировки */

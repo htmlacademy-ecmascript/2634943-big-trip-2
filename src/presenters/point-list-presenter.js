@@ -1,10 +1,10 @@
-import { render } from '../framework/render.js';
+import { render, remove } from '../framework/render.js';
 import SortingView from '../views/sorting-view.js';
 import ListView from '../views/list-view.js';
 import NoPointView from '../views/no-point-view.js';
 import PointPresenter from './point-presenter.js';
-import { updateItem } from '../utils/common.js';
-import { SortType } from '../const.js';
+import { SortType, UpdateType } from '../const.js';
+import { filterPoints } from '../utils/filter.js';
 import { pointComparators } from '../utils/sorting.js';
 
 export default class PointListPresenter {
@@ -14,11 +14,17 @@ export default class PointListPresenter {
   /** @type {object} Модель точек маршрута */
   #pointsModel = null;
 
+  /** @type {object} Модель фильтра */
+  #filterModel = null;
+
   /** @type {object} Модель опций */
   #offersModel = null;
 
   /** @type {object} Модель направлений */
   #destinationsModel = null;
+
+  /** @type {Function|null} Обработчик смены режима отображения форм */
+  #onModeChange = null;
 
   /** @type {SortingView|null} Представление формы сортировки */
   #sortingComponent = null;
@@ -26,7 +32,10 @@ export default class PointListPresenter {
   /** @type {ListView|null} Представление списка точек */
   #listComponent = null;
 
-  /** @type {Array} Точки маршрута */
+  /** @type {NoPointView|null} Представление заглушки */
+  #noPointComponent = null;
+
+  /** @type {Array} Отфильтрованные и отсортированные точки маршрута */
   #points = [];
 
   /** @type {string} Текущий тип сортировки */
@@ -39,28 +48,36 @@ export default class PointListPresenter {
    * @param {object} params Параметры презентера
    * @param {HTMLElement} params.container Контейнер списка точек
    * @param {object} params.pointsModel Модель точек маршрута
+   * @param {object} params.filterModel Модель фильтра
    * @param {object} params.offersModel Модель опций
    * @param {object} params.destinationsModel Модель направлений
+   * @param {Function} [params.onModeChange] Обработчик смены режима отображения форм
    */
-  constructor({ container, pointsModel, offersModel, destinationsModel }) {
+  constructor({ container, pointsModel, filterModel, offersModel, destinationsModel, onModeChange }) {
     this.#container = container;
     this.#pointsModel = pointsModel;
+    this.#filterModel = filterModel;
     this.#offersModel = offersModel;
     this.#destinationsModel = destinationsModel;
+    this.#onModeChange = onModeChange;
   }
 
   init() {
-    this.#points = [...this.#pointsModel.getPoints()];
-
-    this.#sortPoints(SortType.DAY);
+    this.#pointsModel.addObserver(this.#handleModelEvent);
+    this.#filterModel.addObserver(this.#handleModelEvent);
 
     this.#renderList();
   }
 
   /** Метод отрисовки списка точек маршрута */
   #renderList() {
-    if (this.#points.length === 0) {
-      render(new NoPointView(), this.#container);
+    this.#clearContainer();
+
+    const points = this.#getPoints();
+
+    if (points.length === 0) {
+      this.#noPointComponent = new NoPointView({ filterType: this.#filterModel.filter });
+      render(this.#noPointComponent, this.#container);
       return;
     }
 
@@ -69,7 +86,15 @@ export default class PointListPresenter {
     this.#listComponent = new ListView();
     render(this.#listComponent, this.#container);
 
-    this.#renderPoints();
+    this.#renderPoints(points);
+  }
+
+  /** Возвращает отфильтрованные и отсортированные точки маршрута */
+  #getPoints() {
+    const points = this.#pointsModel.getPoints();
+    const filteredPoints = filterPoints[this.#filterModel.filter](points);
+
+    return [...filteredPoints].sort(pointComparators[this.#currentSortType]);
   }
 
   /** Метод отрисовки формы сортировки */
@@ -81,8 +106,8 @@ export default class PointListPresenter {
   }
 
   /** Метод отрисовки всех точек маршрута */
-  #renderPoints() {
-    this.#points.forEach((point) => this.#renderPoint(point));
+  #renderPoints(points) {
+    points.forEach((point) => this.#renderPoint(point));
   }
 
   /**
@@ -95,7 +120,9 @@ export default class PointListPresenter {
       point,
       offersModel: this.#offersModel,
       destinationsModel: this.#destinationsModel,
+      pointsModel: this.#pointsModel,
       onDataChange: this.#handlePointChange,
+      onDeleteClick: this.#handlePointDelete,
       onBeforeEdit: this.#resetPointViews
     });
 
@@ -109,42 +136,66 @@ export default class PointListPresenter {
    * @param {object} updatedPoint Обновлённая точка маршрута
    */
   #handlePointChange = (updatedPoint) => {
-    this.#points = updateItem(this.#points, updatedPoint);
-    this.#pointPresenters.get(updatedPoint.id)?.update(updatedPoint);
+    this.#pointsModel.updatePoint(UpdateType.MINOR, updatedPoint);
   };
 
   /**
-   * Обработчик изменения типа сортировки
-   * @param {string} sortType Тип сортировки
+   * Обработчик удаления точки маршрута
+   * @param {object} point Точка маршрута для удаления
    */
+  #handlePointDelete = (point) => {
+    this.#pointsModel.deletePoint(UpdateType.MAJOR, point);
+  };
+
+  /**
+   * Обработчик изменения данных моделей
+   * @param {string} updateType Тип обновления
+   * @param {object} update Данные обновления
+   */
+  #handleModelEvent = (updateType, update) => {
+    if (typeof update === 'string') {
+      this.#currentSortType = SortType.DAY;
+    }
+
+    this.#renderList();
+  };
+
+  /** Обработчик изменения типа сортировки */
   #handleSortTypeChange = (sortType) => {
     if (!sortType || sortType === this.#currentSortType) {
       return;
     }
 
-    this.#sortPoints(sortType);
-    this.#clearPointList();
-    this.#renderPoints();
+    this.#currentSortType = sortType;
+    this.#renderList();
   };
 
   /** Метод сброса представления у всех презентеров точек маршрута */
+  resetView() {
+    this.#resetPointViews();
+  }
+
+  /** Метод сброса типа сортировки */
+  resetSorting() {
+    this.#currentSortType = SortType.DAY;
+  }
+
   #resetPointViews = () => {
     this.#pointPresenters.forEach((pointPresenter) => pointPresenter.resetView());
+    this.#onModeChange?.();
   };
 
-  /**
-   * Метод сортировки точек маршрута по типу
-   * @param {string} sortType Тип сортировки
-   */
-  #sortPoints(sortType) {
-    const comparator = pointComparators[sortType];
+  /** Метод очистки контейнера от представлений списка */
+  #clearContainer() {
+    remove(this.#sortingComponent);
+    remove(this.#listComponent);
+    remove(this.#noPointComponent);
 
-    if (!comparator) {
-      return;
-    }
+    this.#sortingComponent = null;
+    this.#listComponent = null;
+    this.#noPointComponent = null;
 
-    this.#points.sort(comparator);
-    this.#currentSortType = sortType;
+    this.#clearPointList();
   }
 
   /** Метод очистки презентеров точек маршрута */

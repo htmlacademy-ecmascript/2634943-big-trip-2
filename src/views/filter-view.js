@@ -14,12 +14,7 @@ const createFilterItemTemplate = ({ type, count, isChecked }) => {
 };
 
 const createFilterTemplate = (filters) => {
-  const checkedType = filters.find((filter) => filter.count > 0)?.type ?? null;
-
-  const filtersTemplate = filters.map((filter) => createFilterItemTemplate({
-    ...filter,
-    isChecked: filter.type === checkedType
-  })).join('');
+  const filtersTemplate = filters.map((filter) => createFilterItemTemplate(filter)).join('');
 
   return `
   <form class="trip-filters" action="#" method="get">
@@ -33,13 +28,28 @@ export default class FilterView extends AbstractView {
   /** @type {Array} Фильтры с количеством точек */
   #filters = [];
 
+  /** @type {Function|null} Обработчик изменения фильтра */
+  #handleFilterChange = null;
+
+  #filterChangeHandler = (evt) => {
+    if (evt.target.tagName !== 'INPUT') {
+      return;
+    }
+
+    this.#handleFilterChange?.(evt.target.value);
+  };
+
   /**
    * @param {object} params Параметры представления
-   * @param {Array} params.filters Фильтры вида `[{ type, count }]`
+   * @param {Array} params.filters Фильтры вида `[{ type, count, isChecked }]`
+   * @param {Function} [params.onFilterChange] Обработчик изменения фильтра
    */
-  constructor({ filters = [] }) {
+  constructor({ filters = [], onFilterChange }) {
     super();
     this.#filters = filters;
+    this.#handleFilterChange = onFilterChange;
+
+    this.element.addEventListener('change', this.#filterChangeHandler);
   }
 
   get template() {

@@ -14,6 +14,9 @@ export default class FormView extends AbstractStatefulView {
   /** @type {Function|null} Обработчик отправки формы */
   #handleFormSubmit = null;
 
+  /** @type {Function|null} Обработчик удаления точки */
+  #handleDeleteClick = null;
+
   /** @type {Function|null} Обработчик сворачивания формы */
   #handleRollupClick = null;
 
@@ -50,7 +53,10 @@ export default class FormView extends AbstractStatefulView {
   };
 
   #priceInputHandler = (evt) => {
-    this._setState({ basePrice: Number(evt.target.value) });
+    const input = evt.target;
+    const value = input.value.replace(/\D/g, '');
+    input.value = value;
+    this._setState({ basePrice: Number(value) || 0 });
   };
 
   #destinationChangeHandler = (evt) => {
@@ -61,6 +67,11 @@ export default class FormView extends AbstractStatefulView {
     }
 
     this.updateElement({ destination: found.id });
+  };
+
+  #deleteClickHandler = (evt) => {
+    evt.preventDefault();
+    this.#handleDeleteClick?.();
   };
 
   #offersChangeHandler = () => {
@@ -88,6 +99,7 @@ export default class FormView extends AbstractStatefulView {
    * @param {Array} [params.destinations] Все направления
    * @param {Function} [params.onFormSubmit] Обработчик отправки формы
    * @param {Function} [params.onReset] Обработчик сброса формы
+   * @param {Function} [params.onDeleteClick] Обработчик удаления точки
    * @param {Function} [params.onRollupClick] Обработчик сворачивания формы
    * @param {string} [params.mode] Режим формы
    */
@@ -97,6 +109,7 @@ export default class FormView extends AbstractStatefulView {
     destinations = [],
     onFormSubmit,
     onReset,
+    onDeleteClick,
     onRollupClick,
     mode = 'create'
   }) {
@@ -105,6 +118,7 @@ export default class FormView extends AbstractStatefulView {
     this.#destinations = destinations;
     this.#handleFormSubmit = onFormSubmit;
     this.#handleReset = onReset;
+    this.#handleDeleteClick = onDeleteClick;
     this.#handleRollupClick = onRollupClick;
     this.#mode = mode;
 
@@ -137,6 +151,11 @@ export default class FormView extends AbstractStatefulView {
       const rollupBtn = this.element.querySelector('.event__rollup-btn');
       if (rollupBtn) {
         rollupBtn.addEventListener('click', this.#rollupClickHandler);
+      }
+
+      const deleteBtn = this.element.querySelector('.event__reset-btn');
+      if (deleteBtn) {
+        deleteBtn.addEventListener('click', this.#deleteClickHandler);
       }
     } else {
       const resetBtn = this.element.querySelector('.event__reset-btn');
