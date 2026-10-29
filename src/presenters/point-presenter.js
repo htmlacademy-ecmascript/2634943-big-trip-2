@@ -195,14 +195,14 @@ export default class PointPresenter {
     this.#handleDeleteClick?.(this.#point, UserAction.DELETE_POINT);
   };
 
-  #handleFormSubmit = () => {
+  #handleFormSubmit = async () => {
     const updatedPoint = {
       ...this.#point,
       ...this.#formComponent._state,
       id: this.#point.id
     };
 
-    this.#handleDataChange?.(updatedPoint, UserAction.UPDATE_POINT, UpdateType.MINOR);
+    await this.#handleDataChange?.(updatedPoint, UserAction.UPDATE_POINT, UpdateType.MINOR);
     this.#replaceFormToPoint();
   };
 

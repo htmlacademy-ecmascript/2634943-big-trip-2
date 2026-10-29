@@ -1,15 +1,20 @@
-import { getMockDestinations } from '../mock/destinations.js';
+import Observable from '../framework/observable.js';
+import { UpdateType } from '../const.js';
 
-export default class DestinationsModel {
+export default class DestinationsModel extends Observable {
   /** @type {Array} Направления */
   #destinations = [];
 
+  /** @type {object} Сервис для работы с API */
+  #tripApiService = null;
+
   /**
-   * @param {object} [params] Параметры модели
-   * @param {Array} [params.destinations] Направления
+   * @param {object} params Параметры модели
+   * @param {object} params.tripApiService Сервис для работы с API
    */
-  constructor({ destinations = getMockDestinations() } = {}) {
-    this.#destinations = [...destinations];
+  constructor({ tripApiService }) {
+    super();
+    this.#tripApiService = tripApiService;
   }
 
   /** @returns {Array} Направления */
@@ -28,5 +33,15 @@ export default class DestinationsModel {
    */
   getById(id) {
     return this.#destinations.find((destination) => destination.id === id) ?? null;
+  }
+
+  /** Асинхронная инициализация модели: загрузка направлений с сервера */
+  async init() {
+    try {
+      this.#destinations = await this.#tripApiService.destinations;
+      this._notify(UpdateType.INIT);
+    } catch (err) {
+      this._notify(UpdateType.FAILED);
+    }
   }
 }

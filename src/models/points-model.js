@@ -1,17 +1,30 @@
-import { getMockPoints } from '../mock/points.js';
 import Observable from '../framework/observable.js';
+import { UpdateType } from '../const.js';
 
 export default class PointsModel extends Observable {
   /** @type {Array} Точки маршрута */
   #points = [];
 
+  /** @type {object} Сервис для работы с API */
+  #tripApiService = null;
+
+  /** @type {object} Модель направлений */
+  #destinationsModel = null;
+
+  /** @type {object} Модель опций */
+  #offersModel = null;
+
   /**
-   * @param {object} [params] Параметры модели
-   * @param {Array} [params.points] Точки маршрута
+   * @param {object} params Параметры модели
+   * @param {object} params.tripApiService Сервис для работы с API
+   * @param {object} params.destinationsModel Модель направлений
+   * @param {object} params.offersModel Модель опций
    */
-  constructor({ points = getMockPoints() } = {}) {
+  constructor({ tripApiService, destinationsModel, offersModel }) {
     super();
-    this.#points = [...points];
+    this.#tripApiService = tripApiService;
+    this.#destinationsModel = destinationsModel;
+    this.#offersModel = offersModel;
   }
 
   /** @returns {Array} Точки маршрута */
@@ -25,11 +38,30 @@ export default class PointsModel extends Observable {
   }
 
   /**
-   * @param {string} updateType Тип обновления
-   * @param {object} update Обновлённая точка маршрута
+   * Асинхронная инициализация модели: загрузка точек маршрута с сервера.
+   * Сначала загружаются направления и опции, затем сами точки.
    */
-  updatePoint(updateType, update) {
-    const index = this.#points.findIndex((point) => point.id === update.id);
+  async init() {
+    try {
+      await this.#destinationsModel.init();
+      await this.#offersModel.init();
+
+      this.#points = await this.#tripApiService.points;
+      this._notify(UpdateType.INIT);
+    } catch (err) {
+      this._notify(UpdateType.FAILED);
+    }
+  }
+
+  /**
+   * Отправляет обновлённую точку на сервер и только после успеха обновляет локальные данные
+   * @param {object} update Обновлённая точка маршрута
+   * @returns {Promise<object>} Обновлённая точка маршрута
+   */
+  async updatePoint(update) {
+    const updatedPoint = await this.#tripApiService.updatePoint(update);
+
+    const index = this.#points.findIndex((point) => point.id === updatedPoint.id);
 
     if (index === -1) {
       return;
@@ -37,11 +69,11 @@ export default class PointsModel extends Observable {
 
     this.#points = [
       ...this.#points.slice(0, index),
-      update,
+      updatedPoint,
       ...this.#points.slice(index + 1)
     ];
 
-    this._notify(updateType, update);
+    this._notify(UpdateType.MINOR, updatedPoint);
   }
 
   /**

@@ -1,8 +1,9 @@
-import { render } from '../framework/render.js';
+import { render, remove } from '../framework/render.js';
 import FilterPresenter from './filter-presenter.js';
 import PointListPresenter from './point-list-presenter.js';
 import NewPointPresenter from './new-point-presenter.js';
 import NewPointButtonView from '../views/new-point-button-view.js';
+import MessageView from '../views/message-view.js';
 import FilterModel from '../models/filter-model.js';
 import { FilterType, UpdateType } from '../const.js';
 
@@ -37,6 +38,9 @@ export default class TripPresenter {
   /** @type {NewPointButtonView|null} Представление кнопки создания точки */
   #newPointButtonComponent = null;
 
+  /** @type {MessageView|null} Представление сообщения о состоянии загрузки */
+  #messageComponent = null;
+
   /**
    * @param {object} params Параметры презентера
    * @param {HTMLElement} params.tripContainer Контейнер списка точек
@@ -53,7 +57,8 @@ export default class TripPresenter {
     this.#destinationsModel = destinationsModel;
   }
 
-  init() {
+  /** Асинхронная инициализация презентера: ожидает загрузки данных с сервера */
+  async init() {
     this.#filterModel = new FilterModel();
 
     this.#filterPresenter = new FilterPresenter({
@@ -80,10 +85,11 @@ export default class TripPresenter {
       onClose: this.#handleNewPointClose
     });
 
-    this.#renderNewPointButton();
+    this.#pointsModel.addObserver(this.#handleModelEvent);
 
-    this.#filterPresenter.init();
-    this.#pointListPresenter.init();
+    this.#renderMessage('Loading...');
+
+    await this.#pointsModel.init();
   }
 
   /** Метод отрисовки кнопки «New event» */
@@ -112,4 +118,34 @@ export default class TripPresenter {
   #handleNewPointClose = () => {
     this.#newPointButtonComponent.enable();
   };
+
+  /** Обработчик событий модели точек маршрута */
+  #handleModelEvent = (updateType) => {
+    switch (updateType) {
+      case UpdateType.INIT:
+        this.#removeMessage();
+        this.#renderNewPointButton();
+        this.#filterPresenter.init();
+        this.#pointListPresenter.init();
+        break;
+      case UpdateType.FAILED:
+        this.#removeMessage();
+        this.#renderMessage('Failed to load latest route information');
+        break;
+      default:
+        break;
+    }
+  };
+
+  /** Метод отрисовки сообщения о состоянии загрузки */
+  #renderMessage(message) {
+    this.#messageComponent = new MessageView({ message });
+    render(this.#messageComponent, this.#tripContainer);
+  }
+
+  /** Метод удаления сообщения о состоянии загрузки */
+  #removeMessage() {
+    remove(this.#messageComponent);
+    this.#messageComponent = null;
+  }
 }
