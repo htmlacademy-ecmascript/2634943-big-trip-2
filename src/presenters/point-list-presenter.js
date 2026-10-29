@@ -105,7 +105,8 @@ export default class PointListPresenter {
   /** Метод отрисовки формы сортировки */
   #renderSorting() {
     this.#sortingComponent = new SortingView({
-      onSortTypeChange: this.#handleSortTypeChange
+      onSortTypeChange: this.#handleSortTypeChange,
+      sortType: this.#currentSortType
     });
     render(this.#sortingComponent, this.#container);
   }
