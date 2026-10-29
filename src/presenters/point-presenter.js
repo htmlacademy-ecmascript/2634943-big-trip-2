@@ -1,7 +1,6 @@
 import { render, replace, remove } from '../framework/render.js';
-import { POINT_TYPES } from '../const.js';
 import PointView from '../views/point-view.js';
-import EditFormView from '../views/edit-form-view.js';
+import FormView from '../views/form-view.js';
 
 /** @enum {string} Режим отображения точки маршрута */
 const Mode = {
@@ -25,7 +24,7 @@ export default class PointPresenter {
   /** @type {PointView|null} Представление точки */
   #pointComponent = null;
 
-  /** @type {EditFormView|null} Представление формы правки */
+  /** @type {FormView|null} Представление формы правки */
   #formComponent = null;
 
   /** @type {string} Текущий режим отображения точки */
@@ -75,14 +74,13 @@ export default class PointPresenter {
       onFavoriteClick: this.#handleFavoriteClick
     });
 
-    this.#formComponent = new EditFormView({
+    this.#formComponent = new FormView({
       point: this.#point,
-      destination,
-      typeOffers,
+      offers: this.#offersModel.getOffers(),
       destinations: this.#destinationsModel.getDestinations(),
-      pointTypes: POINT_TYPES,
       onFormSubmit: this.#handleFormSubmit,
-      onRollupClick: this.#handleRollupClick
+      onRollupClick: this.#handleRollupClick,
+      mode: 'edit'
     });
 
     render(this.#pointComponent, this.#listContainer);
@@ -109,14 +107,13 @@ export default class PointPresenter {
       onFavoriteClick: this.#handleFavoriteClick
     });
 
-    this.#formComponent = new EditFormView({
+    this.#formComponent = new FormView({
       point: this.#point,
-      destination,
-      typeOffers,
+      offers: this.#offersModel.getOffers(),
       destinations: this.#destinationsModel.getDestinations(),
-      pointTypes: POINT_TYPES,
       onFormSubmit: this.#handleFormSubmit,
-      onRollupClick: this.#handleRollupClick
+      onRollupClick: this.#handleRollupClick,
+      mode: 'edit'
     });
 
     if (this.#mode === Mode.DEFAULT) {
