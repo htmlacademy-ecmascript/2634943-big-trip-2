@@ -233,6 +233,9 @@ main {
   line-height: 25px;
   text-align: center; }
 
+.trip-info__cost-value {
+  font-weight: 800; }
+
 .trip-controls__trip-tabs {
   margin-bottom: 9px; }
 
