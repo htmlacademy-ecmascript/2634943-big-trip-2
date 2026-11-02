@@ -11,8 +11,8 @@ export default class NewPointPresenter {
   #offersPresenter = null;
   #destinationPresenter = null;
 
-  #handleDataChange = null;
-  #handleDestroy = null;
+  #dataChangeHandler = null;
+  #destroyHandler = null;
   #destroyCb = null;
 
   #editPointComponent = null;
@@ -27,8 +27,8 @@ export default class NewPointPresenter {
     this.#pointListContainer = pointListContainer;
     this.#offersList = offersList;
     this.#destinationsList = destinationsList;
-    this.#handleDataChange = onDataChange;
-    this.#handleDestroy = onDestroy;
+    this.#dataChangeHandler = onDataChange;
+    this.#destroyHandler = onDestroy;
   }
 
   get offersList() {
@@ -58,8 +58,8 @@ export default class NewPointPresenter {
       point: {},
       destinations: this.#destinationsList,
       offers: this.#offersList,
-      onFormSubmit: this.#handleFormSubmit,
-      onDeleteClick: this.#handleDeleteClick,
+      onFormSubmit: this.#formSubmitHandler,
+      onDeleteClick: this.#deleteClickHandler,
       isNewPoint: true,
     });
 
@@ -90,7 +90,7 @@ export default class NewPointPresenter {
       return;
     }
 
-    this.#handleDestroy();
+    this.#destroyHandler();
 
     remove(this.#editPointComponent);
     this.#editPointComponent = null;
@@ -118,11 +118,11 @@ export default class NewPointPresenter {
     this.#editPointComponent.shake(resetFormState);
   }
 
-  #handleFormSubmit = (point) => {
-    this.#handleDataChange(UserAction.ADD_POINT, UpdateType.MINOR, point);
+  #formSubmitHandler = (point) => {
+    this.#dataChangeHandler(UserAction.ADD_POINT, UpdateType.MINOR, point);
   };
 
-  #handleDeleteClick = () => {
+  #deleteClickHandler = () => {
     this.destroy();
   };
 

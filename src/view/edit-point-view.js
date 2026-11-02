@@ -146,9 +146,9 @@ export default class EditPointView extends AbstractStatefulView {
   #destinations = null;
   #offers = null;
   #defaultState = null;
-  #handleFormSubmit = null;
-  #handleCloseClick = null;
-  #handleDeleteClick = null;
+  #onFormSubmit = null;
+  #onCloseClick = null;
+  #onDeleteClick = null;
   #startDatepicker = null;
   #endDatepicker = null;
 
@@ -173,9 +173,9 @@ export default class EditPointView extends AbstractStatefulView {
     this.#defaultState = this._state;
     this.#destinations = destinations;
     this.#offers = offers;
-    this.#handleFormSubmit = onFormSubmit;
-    this.#handleCloseClick = onCloseClick;
-    this.#handleDeleteClick = onDeleteClick;
+    this.#onFormSubmit = onFormSubmit;
+    this.#onCloseClick = onCloseClick;
+    this.#onDeleteClick = onDeleteClick;
     this.#isNewPoint = isNewPoint;
 
     this._restoreHandlers();
@@ -264,6 +264,30 @@ export default class EditPointView extends AbstractStatefulView {
     this.updateElement(EditPointView.parseStateToPoint(point));
   }
 
+  #rerenderOffers() {
+    const offersPresenter = new OffersPresenter({
+      point: this,
+      offers: this.#offers,
+    });
+
+    offersPresenter.init();
+  }
+
+  #rerenderDestination() {
+    const destinationPresenter = new DestinationPresenter({
+      point: this,
+      destinations: this.#destinations,
+    });
+
+    destinationPresenter.init();
+  }
+
+  #updateView() {
+    this.#rerenderOffers();
+    this.#rerenderDestination();
+    this.setDatepicker();
+  }
+
   #startDateChangeHandler = ([userDate]) => {
     this.updateElement({
       startDateTime: toIsoString(userDate),
@@ -282,13 +306,13 @@ export default class EditPointView extends AbstractStatefulView {
 
   #formSubmitHandler = (evt) => {
     evt.preventDefault();
-    this.#handleFormSubmit(EditPointView.parseStateToPoint(this._state));
+    this.#onFormSubmit(EditPointView.parseStateToPoint(this._state));
   };
 
   #closeClickHandler = (evt) => {
     evt.preventDefault();
     this.reset(this.#defaultState);
-    this.#handleCloseClick();
+    this.#onCloseClick();
   };
 
   #eventTypeToggleHandler = (evt) => {
@@ -354,32 +378,8 @@ export default class EditPointView extends AbstractStatefulView {
 
   #formDeleteClickHandler = (evt) => {
     evt.preventDefault();
-    this.#handleDeleteClick(EditPointView.parseStateToPoint(this._state));
+    this.#onDeleteClick(EditPointView.parseStateToPoint(this._state));
   };
-
-  #rerenderOffers() {
-    const offersPresenter = new OffersPresenter({
-      point: this,
-      offers: this.#offers,
-    });
-
-    offersPresenter.init();
-  }
-
-  #rerenderDestination() {
-    const destinationPresenter = new DestinationPresenter({
-      point: this,
-      destinations: this.#destinations,
-    });
-
-    destinationPresenter.init();
-  }
-
-  #updateView() {
-    this.#rerenderOffers();
-    this.#rerenderDestination();
-    this.setDatepicker();
-  }
 
   static parsePointToState(point) {
     return { ...point, isDisabled: false, isSaving: false, isDeleting: false };

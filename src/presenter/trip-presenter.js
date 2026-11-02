@@ -71,12 +71,12 @@ export default class TripPresenter {
       pointListContainer: this.#tripListComponent,
       offersList: this.offers,
       destinationsList: this.destinations,
-      onDataChange: this.#handleViewAction,
+      onDataChange: this.#viewActionHandler,
       onDestroy: onNewPointDestroy,
     });
 
-    this.#pointsModel.addObserver(this.#handleModelEvent);
-    this.#filterModel.addObserver(this.#handleModelEvent);
+    this.#pointsModel.addObserver(this.#modelEventHandler);
+    this.#filterModel.addObserver(this.#modelEventHandler);
   }
 
   get points() {
@@ -159,28 +159,18 @@ export default class TripPresenter {
       pointListContainer: this.#tripListComponent,
       offersList: this.offers,
       destinationsList: this.destinations,
-      onDataChange: this.#handleViewAction,
-      onModeChange: this.#handleModeChange,
+      onDataChange: this.#viewActionHandler,
+      onModeChange: this.#modeChangeHandler,
     });
 
     pointPresenter.init(point);
     this.#pointPresenters.set(point.id, pointPresenter);
   }
 
-  #handleSortTypeChange = (sortType) => {
-    if (this.#currentSortType === sortType) {
-      return;
-    }
-
-    this.#currentSortType = sortType;
-    this.#clearTrip();
-    this.#renderTrip();
-  };
-
   #renderSort() {
     this.#sortComponent = new SortView({
       currentSortType: this.#currentSortType,
-      onSortTypeChange: this.#handleSortTypeChange,
+      onSortTypeChange: this.#sortTypeChangeHandler,
     });
     render(this.#sortComponent, this.#tripContainer, RenderPosition.AFTERBEGIN);
   }
@@ -218,7 +208,36 @@ export default class TripPresenter {
     );
   }
 
-  #handleViewAction = async (actionType, updateType, update) => {
+  #clearTrip = ({ resetSortType = false } = {}) => {
+    this.#newPointPresenter.destroy();
+    this.#pointPresenters.forEach((presenter) => presenter.destroy());
+    this.#pointPresenters.clear();
+
+    remove(this.#sortComponent);
+    remove(this.#loadingComponent);
+    remove(this.#failedComponent);
+    remove(this.#tripInfoComponent);
+
+    if (this.#messageComponent) {
+      remove(this.#messageComponent);
+    }
+
+    if (resetSortType) {
+      this.#currentSortType = SortType.DATE;
+    }
+  };
+
+  #sortTypeChangeHandler = (sortType) => {
+    if (this.#currentSortType === sortType) {
+      return;
+    }
+
+    this.#currentSortType = sortType;
+    this.#clearTrip();
+    this.#renderTrip();
+  };
+
+  #viewActionHandler = async (actionType, updateType, update) => {
     this.#uiBlocker.block();
 
     switch (actionType) {
@@ -251,7 +270,7 @@ export default class TripPresenter {
     this.#uiBlocker.unblock();
   };
 
-  #handleModelEvent = (updateType, data) => {
+  #modelEventHandler = (updateType, data) => {
     switch (updateType) {
       case UpdateType.PATCH:
         this.#pointPresenters.get(data.id).init(data);
@@ -279,26 +298,7 @@ export default class TripPresenter {
     }
   };
 
-  #clearTrip = ({ resetSortType = false } = {}) => {
-    this.#newPointPresenter.destroy();
-    this.#pointPresenters.forEach((presenter) => presenter.destroy());
-    this.#pointPresenters.clear();
-
-    remove(this.#sortComponent);
-    remove(this.#loadingComponent);
-    remove(this.#failedComponent);
-    remove(this.#tripInfoComponent);
-
-    if (this.#messageComponent) {
-      remove(this.#messageComponent);
-    }
-
-    if (resetSortType) {
-      this.#currentSortType = SortType.DATE;
-    }
-  };
-
-  #handleModeChange = () => {
+  #modeChangeHandler = () => {
     this.#newPointPresenter.destroy();
     this.#pointPresenters.forEach((presenter) => presenter.resetView());
   };

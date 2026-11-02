@@ -25,12 +25,12 @@ const createSortTemplate = (currentSortType) => {
 
 export default class SortView extends AbstractView {
   #currentSortType = null;
-  #handleSortTypeChange = null;
+  #onSortTypeChange = null;
 
   constructor({ currentSortType, onSortTypeChange }) {
     super();
     this.#currentSortType = currentSortType;
-    this.#handleSortTypeChange = onSortTypeChange;
+    this.#onSortTypeChange = onSortTypeChange;
 
     this.element.addEventListener('change', this.#sortTypeChangeHandler);
   }
@@ -40,6 +40,6 @@ export default class SortView extends AbstractView {
   }
 
   #sortTypeChangeHandler = (evt) => {
-    this.#handleSortTypeChange(evt.target.dataset.sortType);
+    this.#onSortTypeChange(evt.target.dataset.sortType);
   };
 }
