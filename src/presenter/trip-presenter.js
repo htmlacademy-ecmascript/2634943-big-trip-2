@@ -14,12 +14,12 @@ import {
   sortPointsByPrice,
 } from '../utils/point.js';
 
-const TimeLimit = {
+const TIME_LIMIT = {
   LOWER_LIMIT: 350,
   UPPER_LIMIT: 1000,
 };
 
-const noPointsTextType = {
+const NO_POINTS_TEXT_TYPE = {
   [FilterType.EVERYTHING]: 'Click New Event to create your first point',
   [FilterType.FUTURE]: 'There are no future events now',
   [FilterType.PAST]: 'There are no past events now',
@@ -49,8 +49,8 @@ export default class TripPresenter {
   #isFailed = false;
 
   #uiBlocker = new UiBlocker({
-    lowerLimit: TimeLimit.LOWER_LIMIT,
-    upperLimit: TimeLimit.UPPER_LIMIT,
+    lowerLimit: TIME_LIMIT.LOWER_LIMIT,
+    upperLimit: TIME_LIMIT.UPPER_LIMIT,
   });
 
   constructor({
@@ -194,7 +194,7 @@ export default class TripPresenter {
   }
 
   #renderNoPoints() {
-    const noPointsTextValue = noPointsTextType[this.#filterType];
+    const noPointsTextValue = NO_POINTS_TEXT_TYPE[this.#filterType];
     this.#messageComponent = new MessageView({
       message: noPointsTextValue,
     });
