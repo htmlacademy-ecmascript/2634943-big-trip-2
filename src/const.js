@@ -58,6 +58,8 @@ const UpdateType = {
   FAILED: 'FAILED',
 };
 
+const isEscKey = (evt) => evt.key === 'Escape' || evt.key === 'Esc';
+
 export {
   EVENT_TYPES,
   DEFAULT_TYPE,
@@ -66,4 +68,5 @@ export {
   SortType,
   UserAction,
   UpdateType,
+  isEscKey,
 };
