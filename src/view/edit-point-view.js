@@ -225,7 +225,7 @@ export default class EditPointView extends AbstractStatefulView {
 
     this.element
       .querySelector('[name="event-destination"]')
-      .addEventListener('change', this.#destinatonChangeHandler);
+      .addEventListener('change', this.#destinationChangeHandler);
     this.element
       .querySelector('#event-price-1')
       .addEventListener('input', this.#priceChangeHandler);
@@ -308,85 +308,159 @@ export default class EditPointView extends AbstractStatefulView {
     this.#startDatepicker?.set('maxDate', userDate);
   };
 
-  #getFormPoint() {
-    const form = this.element.querySelector('form');
-    const typeInput = form.querySelector('input[name="event-type"]:checked');
+  #getPoint() {
+    return this.#parseFormPoint({ validate: true });
+  }
+
+  #parseFormPoint({ validate = false } = {}) {
+    const form = this.element.querySelector('.event--edit');
+
+    if (!form) {
+      return validate ? null : EditPointView.parseStateToPoint(this._state);
+    }
+
+    const fields = this.#getFormFields(form, validate);
+
+    if (!fields || !this.#validateFormDates({ validate, ...fields })) {
+      return null;
+    }
+
+    return this.#buildPointFromForm(form, fields, validate);
+  }
+
+  #getSelectedOffers(form, typeOffers) {
+    return typeOffers
+      .filter((offer) => {
+        const inputName = `event-offer-${he.encode(offer.title).replaceAll(' ', '-').toLowerCase()}`;
+        const offerElementId = `${inputName}-1`;
+        return form.querySelector(`[id="${CSS.escape(offerElementId)}"]`)?.checked;
+      })
+      .map((offer) => offer.id);
+  }
+
+  #getFormFields(form, validate) {
     const destinationInput = form.querySelector('[name="event-destination"]');
-    const priceInput = form.querySelector('[name="event-price"]');
-    const startDateInput = form.querySelector('[name="event-start-time"]');
-    const endDateInput = form.querySelector('[name="event-end-time"]');
-
+    const startInput = form.querySelector('[name="event-start-time"]');
+    const endInput = form.querySelector('[name="event-end-time"]');
+    const destinationName = destinationInput.value.trim();
+    const destination = this.#destinations.find((dest) => dest.title === destinationName);
+    const typeInput = form.querySelector('input[name="event-type"]:checked');
     const type = typeInput?.value || this._state.type;
+    const typeOffers = this.#offers.find((item) => item.type === type)?.offers ?? [];
 
-    const destinationTitle = destinationInput.value.trim();
-    const destination =
-      this.#destinations.find((dest) => dest.title === destinationTitle) ||
-      this._state.destination;
-    const destinationId = destination?.id ?? null;
-
-    const typeOffers = this.#offers.find((offer) => offer.type === type);
-    const availableOffers = typeOffers ? typeOffers.offers : [];
-    const offers = [];
-    const offersIds = [];
-
-    availableOffers.forEach((offer) => {
-      const inputName = `event-offer-${he.encode(offer.title).replaceAll(' ', '-').toLowerCase()}`;
-      const checkbox = form.querySelector(`#${inputName}-1`);
-      if (checkbox?.checked) {
-        offers.push(offer);
-        offersIds.push(offer.id);
-      }
-    });
-
-    const startDate = this.#startDatepicker?.selectedDates[0];
-    const endDate = this.#endDatepicker?.selectedDates[0];
-    const now = toIsoString(new Date());
-    const oneHourLater = toIsoString(new Date(Date.now() + 3600000));
-    let startDateTime;
-    if (startDate) {
-      startDateTime = toIsoString(startDate);
-    } else if (startDateInput.value) {
-      startDateTime = toIsoString(this.#parseFlatpickrDateTime(startDateInput.value));
-    } else {
-      startDateTime = this._state.startDateTime || now;
-    }
-    let endDateTime;
-    if (endDate) {
-      endDateTime = toIsoString(endDate);
-    } else if (endDateInput.value) {
-      endDateTime = toIsoString(this.#parseFlatpickrDateTime(endDateInput.value));
-    } else {
-      endDateTime = this._state.endDateTime || oneHourLater;
+    if (validate && !destination) {
+      destinationInput.setCustomValidity('Выберите город из списка');
+      destinationInput.reportValidity();
+      return null;
     }
 
-    const price = priceInput ? Number(priceInput.value) || 0 : this._state.price;
+    destinationInput.setCustomValidity('');
+
+    const dateFrom = this.#getDateFromInput(
+      this.#startDatepicker,
+      startInput,
+      validate ? 'Укажите дату и время начала' : ''
+    ) ?? (validate ? null : this._state.startDateTime);
+
+    const dateTo = this.#getDateFromInput(
+      this.#endDatepicker,
+      endInput,
+      validate ? 'Укажите дату и время окончания' : ''
+    ) ?? (validate ? null : this._state.endDateTime);
 
     return {
-      id: this._state.id,
-      startDateTime,
-      endDateTime,
-      type,
-      destinationId,
       destination,
-      price,
-      offersIds,
-      offers,
-      isFavorite: this._state.isFavorite,
+      type,
+      typeOffers,
+      dateFrom,
+      dateTo,
+      startInput,
+      endInput,
+      basePrice: Number(form.querySelector('[name="event-price"]').value) || 0,
     };
   }
 
-  #parseFlatpickrDateTime(dateTimeStr) {
-    const match = dateTimeStr.match(/^(\d{2})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})$/);
-    if (!match) {
-      return null;
+  #validateFormDates({ validate, dateFrom, dateTo, startInput, endInput }) {
+    if (!validate) {
+      return true;
     }
-    const [, day, month, year, hours, minutes] = match;
-    return new Date(`20${year}-${month}-${day}T${hours}:${minutes}:00`);
+
+    if (!dateFrom || !dateTo) {
+      return false;
+    }
+
+    startInput.setCustomValidity('');
+
+    if (this.#isNewPoint && new Date(dateFrom) < new Date()) {
+      startInput.setCustomValidity('Дата начала не может быть в прошлом');
+      startInput.reportValidity();
+      return false;
+    }
+
+    if (new Date(dateTo) < new Date(dateFrom)) {
+      endInput.setCustomValidity('Дата окончания не может быть раньше даты начала');
+      endInput.reportValidity();
+      return false;
+    }
+
+    endInput.setCustomValidity('');
+    return true;
+  }
+
+  #buildPointFromForm(form, fields, validate) {
+    const { destination, type, typeOffers, dateFrom, dateTo, basePrice } = fields;
+
+    return {
+      id: this._state.id,
+      type,
+      destination: validate ? destination : (destination ?? this._state.destination),
+      destinationId: validate ? destination.id : (destination?.id ?? this._state.destinationId),
+      startDateTime: dateFrom || this._state.startDateTime,
+      endDateTime: dateTo || this._state.endDateTime,
+      price: basePrice,
+      offersIds: this.#getSelectedOffers(form, typeOffers),
+      offers: this.#offers.filter((offer) =>
+        typeOffers.some((to) => to.id === offer.id) &&
+        this.#getSelectedOffers(form, typeOffers).includes(offer.id)
+      ),
+      isFavorite: this._state.isFavorite ?? false,
+    };
+  }
+
+  #getDateFromInput(datepicker, input, message) {
+    const selectedDate = datepicker?.selectedDates[0];
+
+    if (selectedDate) {
+      input.setCustomValidity('');
+      return toIsoString(selectedDate);
+    }
+
+    const match = input.value.trim().match(/^(\d{2})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})$/);
+    if (match) {
+      const [, day, month, year, hours, minutes] = match;
+      const parsed = new Date(`20${year}-${month}-${day}T${hours}:${minutes}:00`);
+      input.setCustomValidity('');
+      return toIsoString(parsed);
+    }
+
+    if (message) {
+      input.setCustomValidity(message);
+      input.reportValidity();
+    }
+
+    return null;
   }
 
   #formSubmitHandler = (evt) => {
     evt.preventDefault();
-    this.#onFormSubmit(this.#getFormPoint());
+    const point = this.#getPoint();
+
+    if (!point) {
+      this.shake();
+      return;
+    }
+
+    this.#onFormSubmit(point);
   };
 
   #closeClickHandler = (evt) => {
@@ -398,23 +472,32 @@ export default class EditPointView extends AbstractStatefulView {
   #eventTypeToggleHandler = (evt) => {
     if (evt.target.name === 'event-type') {
       evt.preventDefault();
-      this.updateElement({ type: evt.target.value, offers: [], offersIds: [] });
+      this.updateElement({
+        type: evt.target.value,
+        offers: [],
+        offersIds: [],
+      });
       this.#updateView();
     }
   };
 
-  #destinatonChangeHandler = (evt) => {
+  #destinationChangeHandler = (evt) => {
     evt.preventDefault();
+    const parsedPoint = this.#parseFormPoint();
+    if (!parsedPoint) {
+      return;
+    }
+
     const newDestination = this.#destinations.find(
       (dest) => evt.target.value === dest.title,
     );
 
     if (newDestination) {
       this.updateElement({
+        ...parsedPoint,
         destination: newDestination,
         destinationId: newDestination.id,
       });
-
       this.#updateView();
     }
   };
