@@ -2,7 +2,7 @@ import { remove, render, RenderPosition } from '../framework/render.js';
 import EditPointView from '../view/edit-point-view.js';
 import OffersPresenter from './offers-presenter.js';
 import DestinationPresenter from './destination-presenter.js';
-import { UserAction, UpdateType } from '../const.js';
+import { UserAction, UpdateType, isEscKey } from '../const.js';
 
 export default class NewPointPresenter {
   #pointListContainer = null;
@@ -127,7 +127,7 @@ export default class NewPointPresenter {
   };
 
   #escKeyDownHandler = (evt) => {
-    if (evt.key === 'Escape' || evt.key === 'Esc') {
+    if (isEscKey(evt)) {
       evt.preventDefault();
       this.destroy();
     }

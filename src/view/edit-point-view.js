@@ -225,7 +225,7 @@ export default class EditPointView extends AbstractStatefulView {
 
     this.element
       .querySelector('[name="event-destination"]')
-      .addEventListener('change', this.#destinatonChangeHandler);
+      .addEventListener('change', this.#destinationChangeHandler);
     this.element
       .querySelector('#event-price-1')
       .addEventListener('input', this.#priceChangeHandler);
@@ -235,6 +235,16 @@ export default class EditPointView extends AbstractStatefulView {
   }
 
   setDatepicker() {
+    if (this.#startDatepicker) {
+      this.#startDatepicker.destroy();
+      this.#startDatepicker = null;
+    }
+
+    if (this.#endDatepicker) {
+      this.#endDatepicker.destroy();
+      this.#endDatepicker = null;
+    }
+
     const datepickerOptions = {
       enableTime: true,
       dateFormat: 'd/m/y H:i',
@@ -289,24 +299,168 @@ export default class EditPointView extends AbstractStatefulView {
   }
 
   #startDateChangeHandler = ([userDate]) => {
-    this.updateElement({
-      startDateTime: toIsoString(userDate),
-    });
-
-    this.#updateView();
+    this._setState({ startDateTime: toIsoString(userDate) });
+    this.#endDatepicker?.set('minDate', userDate);
   };
 
   #endDateChangeHandler = ([userDate]) => {
-    this.updateElement({
-      endDateTime: toIsoString(userDate),
-    });
-
-    this.#updateView();
+    this._setState({ endDateTime: toIsoString(userDate) });
+    this.#startDatepicker?.set('maxDate', userDate);
   };
+
+  #getPoint() {
+    return this.#parseFormPoint({ validate: true });
+  }
+
+  #parseFormPoint({ validate = false } = {}) {
+    const form = this.element.querySelector('.event--edit');
+
+    if (!form) {
+      return validate ? null : EditPointView.parseStateToPoint(this._state);
+    }
+
+    const fields = this.#getFormFields(form, validate);
+
+    if (!fields || !this.#validateFormDates({ validate, ...fields })) {
+      return null;
+    }
+
+    return this.#buildPointFromForm(form, fields, validate);
+  }
+
+  #getSelectedOffers(form, typeOffers) {
+    return typeOffers
+      .filter((offer) => {
+        const inputName = `event-offer-${he.encode(offer.title).replaceAll(' ', '-').toLowerCase()}`;
+        const offerElementId = `${inputName}-1`;
+        return form.querySelector(`[id="${CSS.escape(offerElementId)}"]`)?.checked;
+      })
+      .map((offer) => offer.id);
+  }
+
+  #getFormFields(form, validate) {
+    const destinationInput = form.querySelector('[name="event-destination"]');
+    const startInput = form.querySelector('[name="event-start-time"]');
+    const endInput = form.querySelector('[name="event-end-time"]');
+    const destinationName = destinationInput.value.trim();
+    const destination = this.#destinations.find((dest) => dest.title === destinationName);
+    const typeInput = form.querySelector('input[name="event-type"]:checked');
+    const type = typeInput?.value || this._state.type;
+    const typeOffers = this.#offers.find((item) => item.type === type)?.offers ?? [];
+
+    if (validate && !destination) {
+      destinationInput.setCustomValidity('Выберите город из списка');
+      destinationInput.reportValidity();
+      return null;
+    }
+
+    destinationInput.setCustomValidity('');
+
+    const dateFrom = this.#getDateFromInput(
+      this.#startDatepicker,
+      startInput,
+      validate ? 'Укажите дату и время начала' : ''
+    ) ?? (validate ? null : this._state.startDateTime);
+
+    const dateTo = this.#getDateFromInput(
+      this.#endDatepicker,
+      endInput,
+      validate ? 'Укажите дату и время окончания' : ''
+    ) ?? (validate ? null : this._state.endDateTime);
+
+    return {
+      destination,
+      type,
+      typeOffers,
+      dateFrom,
+      dateTo,
+      startInput,
+      endInput,
+      basePrice: Number(form.querySelector('[name="event-price"]').value) || 0,
+    };
+  }
+
+  #validateFormDates({ validate, dateFrom, dateTo, startInput, endInput }) {
+    if (!validate) {
+      return true;
+    }
+
+    if (!dateFrom || !dateTo) {
+      return false;
+    }
+
+    startInput.setCustomValidity('');
+
+    if (this.#isNewPoint && new Date(dateFrom) < new Date()) {
+      startInput.setCustomValidity('Дата начала не может быть в прошлом');
+      startInput.reportValidity();
+      return false;
+    }
+
+    if (new Date(dateTo) < new Date(dateFrom)) {
+      endInput.setCustomValidity('Дата окончания не может быть раньше даты начала');
+      endInput.reportValidity();
+      return false;
+    }
+
+    endInput.setCustomValidity('');
+    return true;
+  }
+
+  #buildPointFromForm(form, fields, validate) {
+    const { destination, type, typeOffers, dateFrom, dateTo, basePrice } = fields;
+
+    return {
+      id: this._state.id,
+      type,
+      destination: validate ? destination : (destination ?? this._state.destination),
+      destinationId: validate ? destination.id : (destination?.id ?? this._state.destinationId),
+      startDateTime: dateFrom || this._state.startDateTime,
+      endDateTime: dateTo || this._state.endDateTime,
+      price: basePrice,
+      offersIds: this.#getSelectedOffers(form, typeOffers),
+      offers: this.#offers.filter((offer) =>
+        typeOffers.some((to) => to.id === offer.id) &&
+        this.#getSelectedOffers(form, typeOffers).includes(offer.id)
+      ),
+      isFavorite: this._state.isFavorite ?? false,
+    };
+  }
+
+  #getDateFromInput(datepicker, input, message) {
+    const selectedDate = datepicker?.selectedDates[0];
+
+    if (selectedDate) {
+      input.setCustomValidity('');
+      return toIsoString(selectedDate);
+    }
+
+    const match = input.value.trim().match(/^(\d{2})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})$/);
+    if (match) {
+      const [, day, month, year, hours, minutes] = match;
+      const parsed = new Date(`20${year}-${month}-${day}T${hours}:${minutes}:00`);
+      input.setCustomValidity('');
+      return toIsoString(parsed);
+    }
+
+    if (message) {
+      input.setCustomValidity(message);
+      input.reportValidity();
+    }
+
+    return null;
+  }
 
   #formSubmitHandler = (evt) => {
     evt.preventDefault();
-    this.#onFormSubmit(EditPointView.parseStateToPoint(this._state));
+    const point = this.#getPoint();
+
+    if (!point) {
+      this.shake();
+      return;
+    }
+
+    this.#onFormSubmit(point);
   };
 
   #closeClickHandler = (evt) => {
@@ -318,23 +472,32 @@ export default class EditPointView extends AbstractStatefulView {
   #eventTypeToggleHandler = (evt) => {
     if (evt.target.name === 'event-type') {
       evt.preventDefault();
-      this.updateElement({ type: evt.target.value, offers: [], offersIds: [] });
+      this.updateElement({
+        type: evt.target.value,
+        offers: [],
+        offersIds: [],
+      });
       this.#updateView();
     }
   };
 
-  #destinatonChangeHandler = (evt) => {
+  #destinationChangeHandler = (evt) => {
     evt.preventDefault();
+    const parsedPoint = this.#parseFormPoint();
+    if (!parsedPoint) {
+      return;
+    }
+
     const newDestination = this.#destinations.find(
       (dest) => evt.target.value === dest.title,
     );
 
     if (newDestination) {
       this.updateElement({
+        ...parsedPoint,
         destination: newDestination,
         destinationId: newDestination.id,
       });
-
       this.#updateView();
     }
   };

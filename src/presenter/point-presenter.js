@@ -3,7 +3,7 @@ import PointView from '../view/point-view.js';
 import EditPointView from '../view/edit-point-view.js';
 import OffersPresenter from './offers-presenter.js';
 import DestinationPresenter from './destination-presenter.js';
-import { UserAction, UpdateType } from '../const.js';
+import { UserAction, UpdateType, isEscKey } from '../const.js';
 
 const Mode = {
   DEFAULT: 'DEFAULT',
@@ -157,7 +157,7 @@ export default class PointPresenter {
   }
 
   #escKeyDownHandler = (evt) => {
-    if (evt.key === 'Escape') {
+    if (isEscKey(evt)) {
       evt.preventDefault();
       this.#editPointComponent.reset(this.#point);
       this.#replaceFormToPoint();

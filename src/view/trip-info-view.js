@@ -2,12 +2,14 @@ import he from 'he';
 import AbstractStatefulView from '../framework/view/abstract-stateful-view.js';
 import { humanizePointDateTime } from '../utils/point.js';
 
+const MAX_ROUTE_DESTINATIONS = 3;
+
 const createRouteString = (points) => {
   const destinations = points.map((point) =>
     he.encode(point.destination.title),
   );
 
-  if (destinations.length > 3) {
+  if (destinations.length > MAX_ROUTE_DESTINATIONS) {
     return `${destinations[0]} &mdash; ... &mdash; ${destinations.at(-1)}`;
   }
 
