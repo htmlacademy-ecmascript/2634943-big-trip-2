@@ -391,12 +391,6 @@ export default class EditPointView extends AbstractStatefulView {
 
     startInput.setCustomValidity('');
 
-    if (this.#isNewPoint && new Date(dateFrom) < new Date()) {
-      startInput.setCustomValidity('Дата начала не может быть в прошлом');
-      startInput.reportValidity();
-      return false;
-    }
-
     if (new Date(dateTo) < new Date(dateFrom)) {
       endInput.setCustomValidity('Дата окончания не может быть раньше даты начала');
       endInput.reportValidity();
