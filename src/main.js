@@ -1,4 +1,4 @@
-﻿import dayjs from 'dayjs';
+import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration.js';
 import isBetween from 'dayjs/plugin/isBetween.js';
 import TripPresenter from './presenter/trip-presenter.js';
@@ -13,7 +13,7 @@ import TripApiService from './trip-api-service.js';
 dayjs.extend(duration);
 dayjs.extend(isBetween);
 
-const AUTHORIZATION = 'Basic kjuf56yu9nbv34w';
+const AUTHORIZATION = `Basic ${crypto.randomUUID().replaceAll('-', '').slice(0, 11)}`;
 const END_POINT = 'https://22.objects.htmlacademy.pro/big-trip';
 
 const tripApiService = new TripApiService(END_POINT, AUTHORIZATION);
